@@ -757,12 +757,13 @@ def generate_nav_menu(user):
         '<li><a href="/">首页</a></li>'
     ]
 
-
     if user.role == 'teacher':
         base_menu.append('<li><a href="/user/settings">个人账户设置</a></li>')
         base_menu.append('<li><a href="/stats/dashboard">📊 数据统计仪表盘</a></li>')
-        base_menu.append('<li><a href="/achievement/ocr_import">📷 OCR智能导入</a></li>')
+        base_menu.append('<li><a href="/achievement/ocr_import">📷 OCR 智能导入</a></li>')
         base_menu.append('<li><a href="/achievement/voice_export">🎙️ 语音导出</a></li>')
+
+
 
     elif user.role == 'team_leader':
         base_menu.append('<li><a href="/user/settings">个人账户设置</a></li>')
@@ -849,9 +850,19 @@ def generate_nav_menu(user):
 
 
 def render_base_layout(title, content, user):
-    """渲染基础布局（左右布局，禁止Jinja）"""
+    """渲染基础布局（左右布局，禁止 Jinja）"""
     nav_menu = generate_nav_menu(user) if user else ''
     user_info = f'欢迎，{user.username}（{user.role}）' if user else '未登录'
+
+    # 获取 flash 消息
+    from flask import get_flashed_messages
+    flashed_messages = get_flashed_messages(with_categories=True)
+
+    # 生成 flash 消息 HTML
+    messages_html = ''
+    if flashed_messages:
+        for category, message in flashed_messages:
+            messages_html += f'<div class="alert alert-{category}">{message}</div>'
 
     html = f'''
 <!DOCTYPE html>
@@ -866,152 +877,382 @@ def render_base_layout(title, content, user):
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
         }}
         body {{
-            background: #f5f7fa;
+            background: linear-gradient(135deg, #87CEEB 0%, #4A90E2 100%);
             min-height: 100vh;
         }}
         /* 左侧导航栏 */
         .sidebar {{
-            width: 250px;
-            background: #2c3e50;
+            width: 260px;
+            background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
             color: white;
             min-height: 100vh;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            padding: 0;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.15);
             position: fixed;
             top: 0;
             left: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }}
+        .sidebar:hover {{
+            box-shadow: 4px 0 15px rgba(0,0,0,0.25);
         }}
         .sidebar-header {{
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
+            padding: 25px 20px;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 0;
         }}
         .sidebar-header h2 {{
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
+            color: #3498db;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
         }}
         .sidebar-menu {{
             list-style: none;
-            padding: 0 10px;
+            padding: 15px 10px;
         }}
         .sidebar-menu li {{
-            margin: 5px 0;
+            margin: 8px 0;
         }}
         .sidebar-menu a {{
             display: block;
-            padding: 12px 20px;
+            padding: 14px 20px;
             color: #ecf0f1;
             text-decoration: none;
-            border-radius: 4px;
-            transition: all 0.3s;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }}
+        .sidebar-menu a::before {{
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: #3498db;
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
         }}
         .sidebar-menu a:hover {{
-            background: #34495e;
+            background: rgba(52, 152, 219, 0.15);
             color: #3498db;
+            padding-left: 25px;
+        }}
+        .sidebar-menu a:hover::before {{
+            transform: scaleY(1);
         }}
         .menu-group span {{
             display: block;
-            padding: 12px 20px;
+            padding: 14px 20px;
             color: #bdc3c7;
             font-weight: 600;
             cursor: pointer;
-            transition: color 0.3s;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            position: relative;
         }}
         .menu-group span:hover {{
             color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
         }}
         .submenu {{
             list-style: none;
-            padding-left: 20px;
-            display: none; /* 默认隐藏子菜单 */
+            padding-left: 15px;
+            display: none;
+            margin-top: 5px;
         }}
         .submenu.active {{
-            display: block; /* 激活时显示 */
+            display: block;
+            animation: slideDown 0.3s ease;
+        }}
+        @keyframes slideDown {{
+            from {{
+                opacity: 0;
+                transform: translateY(-10px);
+            }}
+            to {{
+                opacity: 1;
+                transform: translateY(0);
+            }}
         }}
         .submenu a {{
-            padding: 8px 20px;
+            padding: 10px 20px;
             font-size: 14px;
+            color: #95a5a6;
+            border-left: 2px solid transparent;
+        }}
+        .submenu a:hover {{
+            color: #3498db;
+            border-left-color: #3498db;
+            background: rgba(52, 152, 219, 0.05);
         }}
         /* 右侧内容区 */
         .content {{
             padding: 30px;
-            margin-left: 250px;
-            width: calc(100% - 250px);
-        }}
-        .content-header {{
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e9ecef;
-        }}
-        .content-header h1 {{
-            font-size: 24px;
-            color: #2c3e50;
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: 100vh;
         }}
         .user-info {{
             text-align: right;
-            margin-bottom: 10px;
-            color: #7f8c8d;
+            margin-bottom: 15px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }}
+        .content-header {{
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }}
+        .content-header h1 {{
+            font-size: 28px;
+            color: white;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }}
         .container {{
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 30px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 35px;
             min-height: 500px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.5);
         }}
         /* 表单样式 */
         .form-group {{
-            margin-bottom: 20px;
+            margin-bottom: 22px;
+            position: relative;
         }}
         label {{
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
-            color: #495057;
+            color: #2c3e50;
+            font-size: 15px;
+            transition: color 0.3s ease;
         }}
-        input, select {{
+        .form-group:hover label {{
+            color: #3498db;
+        }}
+        input, select, textarea {{
             width: 100%;
-            padding: 10px 15px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
         }}
-        input:focus, select:focus {{
+        input:focus, select:focus, textarea:focus {{
             outline: none;
             border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }}
+        input[type="file"] {{
+            padding: 10px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            background: #fafafa;
+            cursor: pointer;
+        }}
+        input[type="file"]:hover {{
+            border-color: #3498db;
+            background: #f0f7ff;
         }}
         .btn {{
             display: inline-block;
-            padding: 10px 20px;
-            background: #3498db;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            position: relative;
+            overflow: hidden;
+        }}
+        .btn::before {{
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }}
+        .btn:hover::before {{
+            width: 300px;
+            height: 300px;
         }}
         .btn:hover {{
-            background: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }}
+        .btn:active {{
+            transform: translateY(-1px);
+        }}
+        .btn-success {{
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }}
+        .btn-success:hover {{
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }}
+        .btn-warning {{
+            background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }}
+        .btn-warning:hover {{
+            box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+        }}
+        .btn-danger {{
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }}
+        .btn-danger:hover {{
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }}
+        .btn-info {{
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+        }}
+        .btn-info:hover {{
+            box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
+        }}
+        .btn-secondary {{
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
         }}
         /* 提示框样式 */
         .alert {{
-            padding: 15px;
+            padding: 16px 20px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            animation: slideIn 0.5s ease;
+            font-weight: 500;
+        }}
+        @keyframes slideIn {{
+            from {{
+                opacity: 0;
+                transform: translateX(-20px);
+            }}
+            to {{
+                opacity: 1;
+                transform: translateX(0);
+            }}
         }}
         .alert-success {{
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
+            border-color: #28a745;
         }}
         .alert-danger {{
             background: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            border-color: #dc3545;
+        }}
+        .alert-warning {{
+            background: #fff3cd;
+            color: #856404;
+            border-color: #ffc107;
+        }}
+        .alert-info {{
+            background: #d1ecf1;
+            color: #0c5460;
+            border-color: #17a2b8;
+        }}
+        /* 表格样式优化 */
+        table {{
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+        thead tr {{
+            background: linear-gradient(135deg, #87CEEB 0%, #4A90E2 100%);
+            color: black;
+        }}
+        thead th {{
+            padding: 16px 12px;
+            border: none;
+            font-weight: 600;
+            text-align: left;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }}
+        tbody tr {{
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e9ecef;
+        }}
+        tbody tr:hover {{
+            background: #f8f9fa;
+            transform: scale(1.01);
+        }}
+        tbody tr:last-child {{
+            border-bottom: none;
+        }}
+        tbody td {{
+            padding: 14px 12px;
+            border: none;
+            color: #495057;
+            font-size: 14px;
+        }}
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {{
+            width: 10px;
+            height: 10px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: #f1f1f1;
+            border-radius: 5px;
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: #3498db;
+            border-radius: 5px;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{
+            background: #2980b9;
+        }}
+        /* 响应式设计 */
+        @media (max-width: 768px) {{
+            .sidebar {{
+                width: 200px;
+            }}
+            .content {{
+                margin-left: 200px;
+                width: calc(100% - 200px);
+            }}
+            .sidebar-header h2 {{
+                font-size: 16px;
+            }}
         }}
     </style>
 </head>
@@ -1019,18 +1260,19 @@ def render_base_layout(title, content, user):
     <!-- 左侧导航栏 -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>教学成果管理系统</h2>
+            <h2>🎓 教学成果管理系统</h2>
         </div>
         {nav_menu}
     </div>
 
     <!-- 右侧内容区 -->
     <div class="content">
-        <div class="user-info">{user_info}</div>
+        <div class="user-info">👤 {user_info}</div>
         <div class="content-header">
             <h1>{title}</h1>
         </div>
         <div class="container">
+            {messages_html}
             {content}
         </div>
     </div>
@@ -1038,19 +1280,56 @@ def render_base_layout(title, content, user):
     <!-- 新增：子菜单切换脚本 -->
     <script>
         function toggleSubmenu(el) {{
-            // 获取点击的span的下一个兄弟元素（submenu）
             const submenu = el.nextElementSibling;
             if (submenu && submenu.classList.contains('submenu')) {{
-                // 切换active类，实现显示/隐藏
                 submenu.classList.toggle('active');
+                const span = el;
+                span.style.color = submenu.classList.contains('active') ? '#3498db' : '#bdc3c7';
             }}
         }}
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {{
+            // 为所有按钮添加点击波纹效果
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {{
+                btn.addEventListener('click', function(e) {{
+                    const ripple = document.createElement('span');
+                    const rect = btn.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size/2;
+                    const y = e.clientY - rect.top - size/2;
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.classList.add('ripple');
+                    btn.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 600);
+                }});
+            }});
+        }});
     </script>
+
+    <style>
+        .ripple {{
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(0);
+            animation: ripple-animation 0.6s ease-out;
+            pointer-events: none;
+        }}
+        @keyframes ripple-animation {{
+            to {{
+                transform: scale(4);
+                opacity: 0;
+            }}
+        }}
+    </style>
 </body>
 </html>
 '''
     return html
-
 
 def allowed_file(filename):
     """校验上传文件扩展名"""
@@ -1168,22 +1447,46 @@ def render_achievement_list(model, title, fields_config, current_user):
 
     # 分页查询
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 5
     pagination = query.order_by(model.update_time.desc()).paginate(page=page, per_page=per_page)
     items = pagination.items
 
     # 生成列表HTML（添加智能导入按钮）
     table_html = '''
-    <div style="margin-bottom:20px;">
-        <a href="?action=add" class="btn">新增</a>
-        <a href="?action=export" class="btn ">导出</a>
-        <a href="?action=stats" class="btn ">统计分析</a>
-    '''
+            <div style="margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+            <a href="?action=add" class="btn btn-primary">新增</a>
+            <a href="?action=export" class="btn btn-success">导出</a>
+            <a href="?action=stats" class="btn btn-warning">统计分析</a>
+        '''
     # 根据成果类型添加智能导入按钮
+    type_key = ''
     if model.__name__ == 'JournalPaper':
-        table_html += '<a href="/achievement/journal_paper/import" class="btn " style="background:#27ae60;">智能导入</a>'
+        type_key = 'journal_paper'
+        table_html += '<a href="/achievement/journal_paper/import" class="btn btn-danger">知网智能导入</a>'
     elif model.__name__ == 'ConferencePaper':
-        table_html += '<a href="/achievement/conference_paper/import" class="btn " style="background:#27ae60;">智能导入</a>'
+        type_key = 'conference_paper'
+        table_html += '<a href="/achievement/conference_paper/import" class="btn btn-danger">知网智能导入</a>'
+    elif model.__name__ == 'Textbook':
+        type_key = 'textbook'
+    elif model.__name__ == 'Monograph':
+        type_key = 'monograph'
+    elif model.__name__ == 'TeachingProject':
+        type_key = 'teaching_project'
+    elif model.__name__ == 'Patent':
+        type_key = 'patent'
+    elif model.__name__ == 'SoftwareCopyright':
+        type_key = 'software_copyright'
+    elif model.__name__ == 'TeachingAchievementAward':
+        type_key = 'teaching_achievement_award'
+    elif model.__name__ == 'TeachingCompetitionAward':
+        type_key = 'teaching_competition_award'
+    elif model.__name__ == 'StudentGuidanceAward':
+        type_key = 'student_guidance_award'
+
+    # 添加批量导入按钮（如果有对应的类型）
+    if type_key:
+        table_html += f'<a href="/achievement/batch_import/{type_key}" class="btn btn-info">批量导入</a>'
+
     table_html += '''
     </div>
     <table style="width:100%; border-collapse: collapse; margin-top:20px;">
@@ -1246,19 +1549,31 @@ def render_achievement_list(model, title, fields_config, current_user):
                 textbook_level = db.session.get(TextbookLevel, value)
                 value = textbook_level.level_name if textbook_level else value
 
-            # 处理 NULL 值，转为空字符串
+                # 核心修复：处理期刊论文的收录情况字段（将 ID 列表转为名称列表）
+            elif field_name == 'inclusion_type_ids' and value:
+                inclusion_ids = [id_str.strip() for id_str in str(value).split(',') if id_str.strip()]
+                inclusion_names = []
+                for inc_id in inclusion_ids:
+                    try:
+                        inc_type = db.session.get(InclusionType, int(inc_id))
+                        if inc_type:
+                            inclusion_names.append(inc_type.type_name)
+                    except (ValueError, TypeError):
+                        continue
+                value = ','.join(inclusion_names) if inclusion_names else ''
+
+                # 处理 NULL 值，转为空字符串
             if value is None:
                 value = ''
-            # 特殊处理日期字段
+                # 特殊处理日期字段
             elif isinstance(value, date) or isinstance(value, datetime):
                 value = value.strftime('%Y-%m-%d') if value else ''
-            # 附件字段显示下载链接
+                # 附件字段显示下载链接
             elif field_name == 'attachment' and value:
                 filename = os.path.basename(value)
                 value = f'<a href="/download?path={value}" target="_blank">📎 {filename}</a>' if value else ''
 
             table_html += f'<td style="padding:10px; border:1px solid #dee2e6;">{value}</td>'
-
         # 操作列（仅自己的成果可修改/删除）【核心修改：删除语音导出按钮】
         ops = ''
         if item.user_id == current_user.id:
@@ -1494,6 +1809,35 @@ def handle_achievement_submit(model, fields_config):
         item.user_id = current_user.id
         item.create_time = datetime.now()
 
+        title_value = request.form.get('title', '').strip()
+        if title_value:
+            # 根据模型类型构建查重查询
+            duplicate_check = None
+            if model == JournalPaper:
+                duplicate_check = JournalPaper.query.filter_by(title=title_value).first()
+            elif model == ConferencePaper:
+                duplicate_check = ConferencePaper.query.filter_by(title=title_value).first()
+            elif model == Textbook:
+                duplicate_check = Textbook.query.filter_by(title=title_value).first()
+            elif model == Monograph:
+                duplicate_check = Monograph.query.filter_by(title=title_value).first()
+            elif model == TeachingProject:
+                duplicate_check = TeachingProject.query.filter_by(title=title_value).first()
+            elif model == Patent:
+                duplicate_check = Patent.query.filter_by(title=title_value).first()
+            elif model == SoftwareCopyright:
+                duplicate_check = SoftwareCopyright.query.filter_by(title=title_value).first()
+            elif model == TeachingAchievementAward:
+                duplicate_check = TeachingAchievementAward.query.filter_by(title=title_value).first()
+            elif model == TeachingCompetitionAward:
+                duplicate_check = TeachingCompetitionAward.query.filter_by(title=title_value).first()
+            elif model == StudentGuidanceAward:
+                duplicate_check = StudentGuidanceAward.query.filter_by(title=title_value).first()
+
+            if duplicate_check:
+                flash(f'❌ 检测到重复成果：《{title_value}》已存在于数据库中，无法重复导入！', 'danger')
+                return redirect(request.referrer)
+
     for field in fields_config:
         field_name = field['name']
         field_type = field.get('type', 'text')
@@ -1590,6 +1934,19 @@ def handle_achievement_submit(model, fields_config):
                     if inc_type:
                         inclusion_names.append(inc_type.type_name)
                 item.inclusion_status = ','.join(inclusion_names)
+
+        elif field_type == 'month':
+            # 处理 month 类型（格式：YYYY-MM）
+            if value == '':
+                value = None
+            else:
+                try:
+                    # 将 YYYY-MM 转换为日期对象（默认使用该月第一天）
+                    value = datetime.strptime(value, '%Y-%m').date()
+                except ValueError:
+                    flash(f'{field["label"]}格式错误（需为 YYYY-MM）！', 'danger')
+                    return redirect(request.referrer)
+
 
         elif field_type == 'date':
             if value == '':
@@ -1966,7 +2323,7 @@ def ai_analyze_citation(citation_text, api_key):
         print(f"AI分析会议论文失败：{e}")
         return {'会议地点': '', '起止页码': ''}
 
-def crawl_cnki_journal(keyword, max_papers=3, driver_path=r'C:\Users\mtlxzmd\OneDrive\桌面\新建文件夹\毕设\msedgedriver.exe'):
+def crawl_cnki_journal(keyword, max_papers=3, driver_path=r'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedgedriver.exe'):
     """爬取知网期刊论文"""
     # 浏览器配置
     options = webdriver.EdgeOptions()
@@ -2084,7 +2441,7 @@ def crawl_cnki_journal(keyword, max_papers=3, driver_path=r'C:\Users\mtlxzmd\One
         print(f"爬取知网期刊论文失败：{e}")
         return []
 
-def crawl_cnki_conference(keyword, max_papers=3, driver_path=r'C:\Users\mtlxzmd\OneDrive\桌面\新建文件夹\毕设\msedgedriver.exe'):
+def crawl_cnki_conference(keyword, max_papers=3, driver_path=r'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedgedriver.exe'):
     """爬取知网会议论文"""
     # 浏览器配置
     options = webdriver.EdgeOptions()
@@ -2277,7 +2634,7 @@ def get_baidu_token(current_user):
 
         return token_data.get("access_token"), None
     except requests.exceptions.Timeout:
-        return None, "获取百度 Token 超时，请检查网络连接"
+        return None
     except requests.exceptions.ConnectionError:
         return None, "无法连接到百度API 服务器，请检查网络"
     except Exception as e:
@@ -2527,7 +2884,7 @@ def parse_voice_command(text):
 
     # ========== 核心增强：识别老师姓名 ==========
     # 匹配"XX老师"格式
-    teacher_pattern = r'([^，。！？\s]+)老师'
+    teacher_pattern = r'导出([^，。！？\s]+)老师'
     teacher_match = re.search(teacher_pattern, text)
     if teacher_match:
         result["teacher_name"] = teacher_match.group(1).strip()
@@ -2571,6 +2928,10 @@ def parse_voice_command(text):
                 result["type_name"] = "指导学生获奖"
             else:
                 result["type_name"] = "教学成果获奖"
+        elif "教研" in text or "教改" in text:
+            result["type_name"] = "教研教改和课程建设项目"
+        elif "项目" in text and ("教研" in text or "教改" in text):
+            result["type_name"] = "教研教改和课程建设项目"
 
     # 识别时间范围
     single_year_pattern = r'(\d{4})年'
@@ -2602,20 +2963,24 @@ def parse_voice_command(text):
 
 def create_achievement_from_ocr(ocr_result, current_user):
     """
-    根据 OCR+AI 分析结果创建成果记录（填充全量数据库字段）
+    根据 OCR+AI 分析结果创建成果记录（支持用户手动修改后的数据）
+    ocr_result 结构：
+    {
+        'type_name': '期刊论文',
+        'title': '论文标题',
+        'raw_text': '原始识别文本',
+        'extra_fields': {'authors': '作者', 'journal_name': '期刊名', ...},  # 用户确认/修改的字段
+        'ai_data': {...}  # AI 分析的原始数据（可选）
+    }
     """
-    zhipu_api_key = get_zhipu_api_key(current_user)
+    type_name = ocr_result.get('type_name', '')
+    title = ocr_result.get('title', '')
+    raw_text = ocr_result.get('raw_text', '')
+    extra_fields = ocr_result.get('extra_fields', {})
+    ai_info = ocr_result.get('ai_data', {})
 
-    base_info = extract_achievement_info(ocr_result['raw_text'])
-
-    ai_info = {}
-    if zhipu_api_key:
-        ai_info = ai_analyze_achievement_text(ocr_result['raw_text'], zhipu_api_key)
-        type_name = ai_info.get('type_name', base_info['type_name'])
-        title = ai_info.get('title', base_info['title'])
-    else:
-        type_name = base_info['type_name']
-        title = base_info['title']
+    if not type_name or not title:
+        return False, "成果类型和名称不能为空", None, None
 
     type_model_mapping = {
         '期刊论文': JournalPaper,
@@ -2638,434 +3003,243 @@ def create_achievement_from_ocr(ocr_result, current_user):
     try:
         achievement = model()
         achievement.user_id = current_user.id
-        achievement.title = title if title else f"OCR 识别成果_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        achievement.title = title
         achievement.create_time = datetime.now()
         achievement.update_time = datetime.now()
 
-        if type_name == '期刊论文':
-            achievement.authors = ai_info.get('authors', '')
-            achievement.corresponding_authors = ai_info.get('corresponding_authors', '')
-            achievement.journal_name = ai_info.get('journal_name', '')
-            achievement.inclusion_status = ai_info.get('inclusion_status', '')
+        # 核心修复：优先使用用户确认的 extra_fields，其次使用 AI 分析结果
+        field_data = {**ai_info, **extra_fields}
 
-            if ai_info.get('year'):
-                achievement.year = ai_info['year']
-            if ai_info.get('publish_year'):
+        if type_name == '期刊论文':
+            achievement.authors = field_data.get('authors', '')
+            achievement.corresponding_authors = field_data.get('corresponding_authors', '')
+            achievement.journal_name = field_data.get('journal_name', '')
+            achievement.inclusion_status = field_data.get('inclusion_status', '')
+
+            if field_data.get('year'):
                 try:
-                    achievement.publish_year = int(ai_info['publish_year'])
+                    achievement.year = int(field_data['year'])
+                except:
+                    pass
+            if field_data.get('publish_year'):
+                try:
+                    achievement.publish_year = int(field_data['publish_year'])
                 except:
                     pass
 
-            achievement.volume = ai_info.get('volume', '')
-            achievement.issue = ai_info.get('issue', '')
-            achievement.page_range = ai_info.get('page_range', '')
-            achievement.doi = ai_info.get('doi', '')
+            achievement.volume = field_data.get('volume', '')
+            achievement.issue = field_data.get('issue', '')
+            achievement.page_range = field_data.get('page_range', '')
+            achievement.doi = field_data.get('doi', '')
 
-            if ai_info.get('publish_date'):
+            if field_data.get('publish_date'):
                 try:
-                    achievement.publish_date = datetime.strptime(ai_info['publish_date'], '%Y-%m-%d').date()
+                    achievement.publish_date = datetime.strptime(field_data['publish_date'], '%Y-%m-%d').date()
                 except:
                     pass
 
         elif type_name == '会议论文':
-            achievement.authors = ai_info.get('authors', '')
-            achievement.corresponding_authors = ai_info.get('corresponding_authors', '')
-            achievement.conference_name = ai_info.get('conference_name', '')
+            achievement.authors = field_data.get('authors', '')
+            achievement.corresponding_authors = field_data.get('corresponding_authors', '')
+            achievement.conference_name = field_data.get('conference_name', '')
 
-            if ai_info.get('publish_year'):
+            if field_data.get('publish_year'):
                 try:
-                    achievement.publish_year = int(ai_info['publish_year'])
+                    achievement.publish_year = int(field_data['publish_year'])
                 except:
                     pass
 
-            achievement.page_range = ai_info.get('page_range', '')
-            achievement.doi = ai_info.get('doi', '')
+            achievement.page_range = field_data.get('page_range', '')
+            achievement.doi = field_data.get('doi', '')
 
-            if ai_info.get('conference_time'):
-                try:
-                    achievement.conference_time = datetime.strptime(ai_info['conference_time'], '%Y-%m-%d').date()
-                except:
-                    pass
-            achievement.conference_place = ai_info.get('conference_place', '')
+            if field_data.get('conference_time'):
+                achievement.conference_time = field_data.get('conference_time', '')
+            achievement.conference_place = field_data.get('conference_place', '')
 
         elif type_name == '教材':
-            achievement.textbook_series = ai_info.get('textbook_series', '')
-            achievement.chief_editor = ai_info.get('chief_editor', '')
-            achievement.associate_editors = ai_info.get('associate_editors', '')
-            achievement.editorial_board = ai_info.get('editorial_board', '')
-            achievement.publisher = ai_info.get('publisher', '')
-            achievement.isbn = ai_info.get('isbn', '')
-            achievement.cip_number = ai_info.get('cip_number', '')
+            achievement.textbook_series = field_data.get('textbook_series', '')
+            achievement.chief_editor = field_data.get('chief_editor', '')
+            achievement.associate_editors = field_data.get('associate_editors', '')
+            achievement.editorial_board = field_data.get('editorial_board', '')
+            achievement.publisher = field_data.get('publisher', '')
+            achievement.isbn = field_data.get('isbn', '')
+            achievement.cip_number = field_data.get('cip_number', '')
 
-            if ai_info.get('publication_year'):
+            if field_data.get('publication_year'):
                 try:
-                    achievement.publication_year = int(ai_info['publication_year'])
+                    achievement.publication_year = int(field_data['publication_year'])
                 except:
                     pass
-            if ai_info.get('publication_month'):
+            if field_data.get('publication_month'):
                 try:
-                    achievement.publication_month = int(ai_info['publication_month'])
+                    achievement.publication_month = int(field_data['publication_month'])
                 except:
                     pass
 
-            achievement.edition = ai_info.get('edition', '')
-            achievement.word_count = ai_info.get('word_count', '')
-            achievement.price = ai_info.get('price', '')
-            achievement.textbook_level = ai_info.get('textbook_level', '')
-            achievement.textbook_type = ai_info.get('textbook_type', '')
-            achievement.applicable_majors = ai_info.get('applicable_majors', '')
-            achievement.remarks = ai_info.get('remarks', '')
-
-            if ai_info.get('publish_date'):
-                try:
-                    achievement.publish_date = datetime.strptime(ai_info['publish_date'], '%Y-%m-%d').date()
-                except:
-                    pass
+            achievement.edition = field_data.get('edition', '')
+            achievement.word_count = field_data.get('word_count', '')
+            achievement.price = field_data.get('price', '')
+            achievement.textbook_level = field_data.get('textbook_level', '')
+            achievement.textbook_type = field_data.get('textbook_type', '')
+            achievement.applicable_majors = field_data.get('applicable_majors', '')
+            achievement.remarks = field_data.get('remarks', '')
 
         elif type_name == '专著':
-            achievement.textbook_series = ai_info.get('textbook_series', '')
-            achievement.chief_editor = ai_info.get('chief_editor', '')
-            achievement.associate_editors = ai_info.get('associate_editors', '')
-            achievement.editorial_board = ai_info.get('editorial_board', '')
-            achievement.publisher = ai_info.get('publisher', '')
-            achievement.isbn = ai_info.get('isbn', '')
-            achievement.cip_number = ai_info.get('cip_number', '')
-            achievement.author_role = ai_info.get('author_role', '')
+            achievement.textbook_series = field_data.get('textbook_series', '')
+            achievement.chief_editor = field_data.get('chief_editor', '')
+            achievement.associate_editors = field_data.get('associate_editors', '')
+            achievement.editorial_board = field_data.get('editorial_board', '')
+            achievement.publisher = field_data.get('publisher', '')
+            achievement.isbn = field_data.get('isbn', '')
+            achievement.cip_number = field_data.get('cip_number', '')
 
-            if ai_info.get('publication_year'):
+            if field_data.get('publication_year'):
                 try:
-                    achievement.publication_year = int(ai_info['publication_year'])
+                    achievement.publication_year = int(field_data['publication_year'])
                 except:
                     pass
-            if ai_info.get('publication_month'):
+            if field_data.get('publication_month'):
                 try:
-                    achievement.publication_month = int(ai_info['publication_month'])
-                except:
-                    pass
-
-            achievement.edition = ai_info.get('edition', '')
-            achievement.word_count = ai_info.get('word_count', '')
-            achievement.price = ai_info.get('price', '')
-            achievement.monograph_type = ai_info.get('monograph_type', '')
-            achievement.applicable_majors = ai_info.get('applicable_majors', '')
-            achievement.remarks = ai_info.get('remarks', '')
-
-            if ai_info.get('publish_date'):
-                try:
-                    achievement.publish_date = datetime.strptime(ai_info['publish_date'], '%Y-%m-%d').date()
+                    achievement.publication_month = int(field_data['publication_month'])
                 except:
                     pass
 
+            achievement.edition = field_data.get('edition', '')
+            achievement.word_count = field_data.get('word_count', '')
+            achievement.price = field_data.get('price', '')
+            achievement.monograph_type = field_data.get('monograph_type', '')
+            achievement.applicable_majors = field_data.get('applicable_majors', '')
+            achievement.remarks = field_data.get('remarks', '')
 
         elif type_name in ['发明专利', '实用新型专利', '外观设计专利']:
-            # 根据专利类型名称获取类型 ID
             patent_type = PatentType.query.filter_by(type_name=type_name).first()
             if patent_type:
                 achievement.patent_type_id = patent_type.id
 
-            # 填充新字段
-            achievement.patentee = ai_info.get('patentee', '')
-            achievement.address = ai_info.get('address', '')
-            achievement.inventors = ai_info.get('inventors', '')
-            achievement.grant_announcement_number = ai_info.get('grant_announcement_number', '')
-            achievement.applicant_at_apply_date = ai_info.get('applicant_at_apply_date', '')
-            achievement.inventor_at_apply_date = ai_info.get('inventor_at_apply_date', '')
+            achievement.patentee = field_data.get('patentee', '')
+            achievement.address = field_data.get('address', '')
+            achievement.inventors = field_data.get('inventors', '')
+            achievement.grant_announcement_number = field_data.get('grant_announcement_number', '')
+            achievement.applicant_at_apply_date = field_data.get('applicant_at_apply_date', '')
+            achievement.inventor_at_apply_date = field_data.get('inventor_at_apply_date', '')
+            achievement.patent_number = field_data.get('patent_number', '')
 
-            # 基础字段
-            achievement.patent_number = ai_info.get('patent_number', '')
-
-            # 根据状态名称获取状态 ID
-            status_name = ai_info.get('status', '')
+            status_name = field_data.get('status', '')
             if status_name:
                 patent_status = PatentStatus.query.filter_by(status_name=status_name).first()
                 if patent_status:
                     achievement.patent_status_id = patent_status.id
 
-            # 处理日期字段
-            if ai_info.get('apply_date'):
+            if field_data.get('apply_date'):
                 try:
-                    achievement.apply_date = datetime.strptime(ai_info['apply_date'], '%Y-%m-%d').date()
+                    achievement.apply_date = datetime.strptime(field_data['apply_date'], '%Y-%m-%d').date()
                 except:
                     pass
-            if ai_info.get('grant_announcement_date'):
+            if field_data.get('grant_announcement_date'):
                 try:
-                    achievement.grant_announcement_date = datetime.strptime(ai_info['grant_announcement_date'],
+                    achievement.grant_announcement_date = datetime.strptime(field_data['grant_announcement_date'],
                                                                             '%Y-%m-%d').date()
                 except:
                     pass
 
         elif type_name == '软著':
-            # 填充新字段
-            achievement.copyright_owner = ai_info.get('copyright_owner', '')
-            achievement.right_acquisition_method = ai_info.get('right_acquisition_method', '')
-            achievement.right_scope = ai_info.get('right_scope', '')
-            achievement.certificate_number = ai_info.get('certificate_number', '')
-            # 基础字段
-            achievement.copyright_number = ai_info.get('copyright_number', '')
+            achievement.copyright_owner = field_data.get('copyright_owner', '')
+            achievement.right_acquisition_method = field_data.get('right_acquisition_method', '')
+            achievement.right_scope = field_data.get('right_scope', '')
+            achievement.certificate_number = field_data.get('certificate_number', '')
+            achievement.copyright_number = field_data.get('copyright_number', '')
 
-            # 处理日期字段
-            if ai_info.get('completion_date'):
+            if field_data.get('completion_date'):
                 try:
-                    achievement.completion_date = datetime.strptime(ai_info['completion_date'], '%Y-%m-%d').date()
+                    achievement.completion_date = datetime.strptime(field_data['completion_date'], '%Y-%m-%d').date()
                 except:
                     pass
-
-            if ai_info.get('first_publication_date'):
+            if field_data.get('first_publication_date'):
                 try:
-                    achievement.first_publication_date = datetime.strptime(ai_info['first_publication_date'],
+                    achievement.first_publication_date = datetime.strptime(field_data['first_publication_date'],
                                                                            '%Y-%m-%d').date()
                 except:
                     pass
-
-            if ai_info.get('register_date'):
+            if field_data.get('register_date'):
                 try:
-                    achievement.register_date = datetime.strptime(ai_info['register_date'], '%Y-%m-%d').date()
+                    achievement.register_date = datetime.strptime(field_data['register_date'], '%Y-%m-%d').date()
                 except:
                     pass
-
-
-
-        elif type_name == '教研教改和课程建设项目':
-            achievement.project_code = ai_info.get('project_code', '')
-            achievement.project_leader = ai_info.get('project_leader', '')
-            achievement.project_members = ai_info.get('project_members', '')
-            achievement.approval_department = ai_info.get('approval_department', '')
-            # 处理项目经费（可以为空）
-            funding_str = ai_info.get('funding', '')
-
-            if funding_str and funding_str.strip():
-                try:
-                    # 去除"万"、"元"等单位，转换为纯数字
-                    funding_str = funding_str.replace('万', '0000').replace('元', '').replace(',', '').strip()
-                    achievement.funding = float(funding_str)
-                except:
-                    pass
-
-            # 处理立项时间（支持多种格式）
-            if ai_info.get('approval_date'):
-                try:
-                    achievement.approval_date = datetime.strptime(ai_info['approval_date'], '%Y-%m').date()
-                except:
-                    pass
-
-            # 处理开始时间
-            if ai_info.get('start_date'):
-                try:
-                    achievement.start_date = datetime.strptime(ai_info['start_date'], '%Y-%m-%d').date()
-                except:
-                    pass
-
-            # 处理结束时间
-            if ai_info.get('end_date'):
-                try:
-                    achievement.end_date = datetime.strptime(ai_info['end_date'], '%Y-%m-%d').date()
-                except:
-                    pass
-
-            project_type_name = ai_info.get('project_type_name', '')
-            if project_type_name:
-                pt = ProjectType.query.filter_by(type_name=project_type_name).first()
-                if pt:
-                    achievement.project_type_id = pt.id
-
-            project_level_name = ai_info.get('project_level_name', '')
-            if project_level_name:
-                pl = ProjectLevel.query.filter_by(level_name=project_level_name).first()
-                if pl:
-                    achievement.project_level_id = pl.id
-
-            project_category_name = ai_info.get('project_category_name', '')
-            if project_category_name:
-                pc = ProjectCategory.query.filter_by(category_name=project_category_name).first()
-                if pc:
-                    achievement.project_category_id = pc.id
-
-
 
         elif type_name == '教学成果获奖':
+            achievement.main_contributors = field_data.get('main_contributors', '')
+            achievement.completing_units = field_data.get('completing_units', '')
+            achievement.award_year = field_data.get('award_year', '')
+            achievement.certificate_number = field_data.get('certificate_number', '')
+            achievement.awarding_unit = field_data.get('awarding_unit', '')
 
-            # 新增字段：主要完成人、成果完成单位、获奖年度、证书编号、颁奖单位
-
-            achievement.main_contributors = ai_info.get('main_contributors', '')
-
-            achievement.completing_units = ai_info.get('completing_units', '')
-
-            achievement.award_year = ai_info.get('award_year')
-
-            achievement.certificate_number = ai_info.get('certificate_number', '')
-
-            achievement.awarding_unit = ai_info.get('awarding_unit', '')
-
-            # 处理外键字段：achievement_type_id
-
-            achievement_type_name = ai_info.get('achievement_type_name', '')
-
-            if achievement_type_name:
-
-                at = TeachingAchievementType.query.filter_by(type_name=achievement_type_name).first()
-
-                if at:
-                    achievement.achievement_type_id = at.id
-
-            # 处理外键字段：achievement_level_id
-
-            achievement_level_name = ai_info.get('achievement_level_name', '')
-
-            if achievement_level_name:
-
-                al = AchievementLevel.query.filter_by(level_name=achievement_level_name).first()
-
-                if al:
-                    achievement.achievement_level_id = al.id
-
-            # 处理外键字段：award_rank_id
-
-            award_rank_name = ai_info.get('award_rank_name', '')
-
-            if award_rank_name:
-
-                ar = AwardRank.query.filter_by(rank_name=award_rank_name).first()
-
-                if ar:
-                    achievement.award_rank_id = ar.id
-
-            # 处理日期
-
-            if ai_info.get('award_date'):
-
+            if field_data.get('award_date'):
                 try:
-
-                    achievement.award_date = datetime.strptime(ai_info['award_date'], '%Y-%m-%d').date()
-
+                    achievement.award_date = datetime.strptime(field_data['award_date'], '%Y-%m-%d').date()
                 except:
-
                     pass
-
 
         elif type_name == '教学竞赛获奖':
+            achievement.winners = field_data.get('winners', '')
+            achievement.winner_unit = field_data.get('winner_unit', '')
+            achievement.competition_name = field_data.get('competition_name', '')
+            achievement.award_year = field_data.get('award_year', '')
+            achievement.certificate_number = field_data.get('certificate_number', '')
 
-            achievement.award_year = ai_info.get('award_year')
-
-            achievement.winners = ai_info.get('winners', '')
-
-            achievement.winner_unit = ai_info.get('winner_unit', '')
-
-            achievement.competition_name = ai_info.get('competition_name', '')
-
-            achievement.certificate_number = ai_info.get('certificate_number', '')
-
-            # 处理外键字段：competition_level_id
-
-            competition_level_name = ai_info.get('competition_level_name', '')
-
-            if competition_level_name:
-
-                cl = AchievementLevel.query.filter_by(level_name=competition_level_name).first()
-
-                if cl:
-                    achievement.competition_level_id = cl.id
-
-            # 处理外键字段：award_rank_id
-
-            award_rank_name = ai_info.get('award_rank_name', '')
-
-            if award_rank_name:
-
-                ar = AwardRank.query.filter_by(rank_name=award_rank_name).first()
-
-                if ar:
-                    achievement.award_rank_id = ar.id
-
-            if ai_info.get('award_date'):
-
+            if field_data.get('award_date'):
                 try:
-
-                    achievement.award_date = datetime.strptime(ai_info['award_date'], '%Y-%m-%d').date()
-
+                    achievement.award_date = datetime.strptime(field_data['award_date'], '%Y-%m-%d').date()
                 except:
-
                     pass
-
 
         elif type_name == '指导学生获奖':
+            achievement.student_name = field_data.get('student_name', '')
+            achievement.project_name = field_data.get('project_name', '')
+            achievement.teacher_name = field_data.get('teacher_name', '')
+            achievement.competition_name = field_data.get('competition_name', '')
+            achievement.award_year = field_data.get('award_year', '')
+            achievement.certificate_number = field_data.get('certificate_number', '')
 
-            achievement.award_year = ai_info.get('award_year')
-
-            achievement.competition_name = ai_info.get('competition_name', '')
-
-            achievement.student_name = ai_info.get('student_name', '')
-
-            achievement.project_name = ai_info.get('project_name', '')
-
-            achievement.teacher_name = ai_info.get('teacher_name', '')
-
-            achievement.student_unit = ai_info.get('student_unit', '')
-
-            achievement.organizer = ai_info.get('organizer', '')
-
-            achievement.certificate_number = ai_info.get('certificate_number', '')
-
-            # 处理外键字段：competition_level_id
-
-            competition_level_name = ai_info.get('competition_level_name', '')
-
-            if competition_level_name:
-
-                cl = AchievementLevel.query.filter_by(level_name=competition_level_name).first()
-
-                if cl:
-                    achievement.competition_level_id = cl.id
-
-            # 处理外键字段：award_rank_id
-
-            award_rank_name = ai_info.get('award_rank_name', '')
-
-            if award_rank_name:
-
-                ar = AwardRank.query.filter_by(rank_name=award_rank_name).first()
-
-                if ar:
-                    achievement.award_rank_id = ar.id
-
-            if ai_info.get('award_date'):
-
+            if field_data.get('award_date'):
                 try:
-
-                    achievement.award_date = datetime.strptime(ai_info['award_date'], '%Y-%m-%d').date()
-
+                    achievement.award_date = datetime.strptime(field_data['award_date'], '%Y-%m-%d').date()
                 except:
-
                     pass
 
+        elif type_name == '教研教改和课程建设项目':
+            achievement.title = field_data.get('title', title)
+            achievement.project_leader = field_data.get('project_leader', '')
+            achievement.project_members = field_data.get('project_members', '')
+            achievement.approval_department = field_data.get('approval_department', '')
+
+            if field_data.get('approval_date'):
+                try:
+                    achievement.approval_date = datetime.strptime(field_data['approval_date'], '%Y-%m-%d').date()
+                except:
+                    pass
+            if field_data.get('start_date'):
+                try:
+                    achievement.start_date = datetime.strptime(field_data['start_date'], '%Y-%m-%d').date()
+                except:
+                    pass
+            if field_data.get('end_date'):
+                try:
+                    achievement.end_date = datetime.strptime(field_data['end_date'], '%Y-%m-%d').date()
+                except:
+                    pass
+
+        # 保存到数据库
         db.session.add(achievement)
-        db.session.flush()
-
-        achievement_type_map = {
-            '期刊论文': 'journal_paper',
-            '会议论文': 'conference_paper',
-            '教材': 'textbook',
-            '专著': 'monograph',
-            '发明专利': 'patent',
-            '实用新型专利': 'patent',
-            '软著': 'software_copyright',
-            '教学成果获奖': 'teaching_achievement_award',
-            '教学竞赛获奖': 'teaching_competition_award',
-            '指导学生获奖': 'student_guidance_award',
-            '教研教改和课程建设项目': 'teaching_project'
-        }
-
-        authors_field = 'authors' if hasattr(achievement, 'authors') else 'chief_editor'
-        authors_str = getattr(achievement, authors_field, '')
-        if authors_str and type_name in achievement_type_map:
-            auto_link_contributors(achievement, achievement_type_map[type_name], authors_str, current_user.id)
-
         db.session.commit()
 
-        return True, f"成功创建{type_name}：{title}（ID：{achievement.id}），已填充{len([k for k, v in ai_info.items() if v])}个字段", type_name, achievement.id
+        return True, f"成功创建{type_name}记录", type_name, achievement.id
+
     except Exception as e:
+        import traceback
+        logger.error(f"创建成果记录失败：{str(e)}")
+        logger.error(traceback.format_exc())
         db.session.rollback()
-        logger.error(f"创建 AI 增强版成果失败：{str(e)}")
-        return False, f"创建成果失败：{str(e)}", None, None
+        return False, f"创建失败：{str(e)}", None, None
 
 
 def ai_analyze_achievement_text(ocr_text, api_key, current_user=None):
@@ -3073,7 +3247,7 @@ def ai_analyze_achievement_text(ocr_text, api_key, current_user=None):
     增强版：调用智谱 AI 分析 OCR 文本，提取所有成果类型的全量数据库字段
     :param ocr_text: OCR 识别的原始文本
     :param api_key: 智谱 AI API Key
-    :param current_user: 当前登录用户（用于筛选教研教改项目）
+    :param current_user: 当前登录用户（用于筛选教研教改和课程建设项目）
     :return: 包含全量字段的结构化字典
     """
     if not ocr_text.strip() or not api_key:
@@ -3355,7 +3529,7 @@ def ai_analyze_achievement_text(ocr_text, api_key, current_user=None):
 2. 所有字段值为字符串类型，无信息则为空字符串
 3. 必须包含 confidence 字段（0-1，代表识别置信度）
 4. type_name 字段必须匹配指定的成果类型列表
-5. 对于教研教改项目，重点关注以下特征词：
+5. 对于教研教改和课程建设项目，重点关注以下特征词：
    - "教学改革研究"、"教改"、"课程建设"、"一流本科课程"、"课程思政"
    - "学校名称"、"项目名称"、"主持人"、"参加人员"、"项目类别"
    - "普通教育"、"湖南省普通高等学校"等
@@ -3644,7 +3818,7 @@ def pdf_to_images(pdf_path, output_dir=None):
         # 适配Windows/Linux/Mac
         poppler_path = None
         if os.name == 'nt':  # Windows系统
-            poppler_path = r"D:\Poppler\Library\bin"  # 替换为你的poppler路径
+            poppler_path = r"F:\poppler-25.12.0\Library\bin"  # 替换为你的poppler路径
 
         # 优化：增加参数减少内存占用，分块处理
         images = convert_from_path(
@@ -4751,7 +4925,7 @@ def team_achievements():
         ('会议论文', ConferencePaper),
         ('教材', Textbook),
         ('专著', Monograph),
-        ('教研项目', TeachingProject),
+        ('教研教改和课程建设项目', TeachingProject),
         ('专利', Patent),
         ('软著', SoftwareCopyright),
         ('教学成果获奖', TeachingAchievementAward),
@@ -4970,7 +5144,7 @@ def team_export_achievement():
         '会议论文': (ConferencePaper, 'conference'),
         '教材': (Textbook, 'textbook'),
         '专著': (Monograph, 'monograph'),
-        '教研项目': (TeachingProject, 'teaching_project'),
+        '教研教改和课程建设项目': (TeachingProject, 'teaching_project'),
         '专利': (Patent, 'patent'),
         '软著': (SoftwareCopyright, 'software_copyright'),
         '教学成果获奖': (TeachingAchievementAward, 'teaching_achievement_award'),
@@ -5414,76 +5588,7 @@ def textbook_manage():
 
     # 处理表单提交（适配新字段）
     if request.method == 'POST':
-        item_id = request.form.get('id')
-        item = db.session.get(Textbook, item_id) if item_id else None
-
-        if item and item.user_id != current_user.id:
-            flash('无权限修改该成果！', 'danger')
-            return redirect(url_for('textbook_manage'))
-
-        if not item:
-            item = Textbook()
-            item.user_id = current_user.id
-            item.create_time = datetime.now()
-
-        # 处理普通字段（包含新增字段）
-        for field in fields_config:
-            field_name = field['name']
-            field_type = field.get('type', 'text')
-            if field_type == 'file':
-                continue
-
-            value = request.form.get(field_name, '').strip()
-
-            # 日期字段处理
-            if field_type == 'date':
-                if value == '':
-                    value = None
-                else:
-                    try:
-                        value = datetime.strptime(value, '%Y-%m-%d').date()
-                    except ValueError:
-                        flash(f'{field["label"]}格式错误（需为 YYYY-MM-DD）！', 'danger')
-                        return redirect(url_for('textbook_manage', action='add'))
-            # 整数字段（出版年/月）
-            elif field_type == 'integer':
-                if value == '':
-                    value = None
-                else:
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        flash(f'{field["label"]}必须为数字！', 'danger')
-                        return redirect(url_for('textbook_manage', action='add'))
-            # 普通文本字段
-            elif value == '':
-                value = None
-
-            setattr(item, field_name, value)
-
-        # 处理文件上传（字段名更新为 textbook_attachment）
-        file = request.files.get('textbook_attachment')
-        if file and file.filename:
-            old_path = getattr(item, 'textbook_attachment', '')
-            if old_path and os.path.exists(old_path):
-                os.remove(old_path)
-            sub_folder = 'textbook'
-            new_path = handle_file_upload(file, sub_folder)
-            setattr(item, 'textbook_attachment', new_path)
-
-        item.update_time = datetime.now()
-
-        # 强制提交数据库
-        try:
-            if not item_id:
-                db.session.add(item)
-            db.session.commit()
-            flash(f'{"修改" if item_id else "新增"}教材成功！', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'操作失败：{str(e)}', 'danger')
-
-        return redirect(url_for('textbook_manage'))
+        return handle_achievement_submit(Textbook, fields_config)
 
     # 其余逻辑（action 分支）保持不变，仅渲染和列表展示会自动适配新字段
     action = request.args.get('action', 'list')
@@ -5547,76 +5652,7 @@ def monograph_manage():
 
     action = request.args.get('action', 'list')
     if request.method == 'POST':
-        item_id = request.form.get('id')
-        item = db.session.get(Monograph, item_id) if item_id else None
-
-        if item and item.user_id != current_user.id:
-            flash('无权限修改该成果！', 'danger')
-            return redirect(url_for('monograph_manage'))
-
-        if not item:
-            item = Monograph()
-            item.user_id = current_user.id
-            item.create_time = datetime.now()
-
-        # 处理普通字段（包含新增字段）
-        for field in fields_config:
-            field_name = field['name']
-            field_type = field.get('type', 'text')
-            if field_type == 'file':
-                continue
-
-            value = request.form.get(field_name, '').strip()
-
-            # 日期字段处理
-            if field_type == 'date':
-                if value == '':
-                    value = None
-                else:
-                    try:
-                        value = datetime.strptime(value, '%Y-%m-%d').date()
-                    except ValueError:
-                        flash(f'{field["label"]}格式错误（需为 YYYY-MM-DD）！', 'danger')
-                        return redirect(url_for('monograph_manage', action='add'))
-            # 整数字段（出版年/月）
-            elif field_type == 'integer':
-                if value == '':
-                    value = None
-                else:
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        flash(f'{field["label"]}必须为数字！', 'danger')
-                        return redirect(url_for('monograph_manage', action='add'))
-            # 普通文本字段
-            elif value == '':
-                value = None
-
-            setattr(item, field_name, value)
-
-        # 处理文件上传（字段名更新为 monograph_attachment）
-        file = request.files.get('monograph_attachment')
-        if file and file.filename:
-            old_path = getattr(item, 'monograph_attachment', '')
-            if old_path and os.path.exists(old_path):
-                os.remove(old_path)
-            sub_folder = 'monograph'
-            new_path = handle_file_upload(file, sub_folder)
-            setattr(item, 'monograph_attachment', new_path)
-
-        item.update_time = datetime.now()
-
-        # 强制提交数据库
-        try:
-            if not item_id:
-                db.session.add(item)
-            db.session.commit()
-            flash(f'{"修改" if item_id else "新增"}专著成功！', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'操作失败：{str(e)}', 'danger')
-
-        return redirect(url_for('monograph_manage'))
+        return handle_achievement_submit(Monograph, fields_config)
 
     # 其余逻辑（action 分支）保持不变，仅渲染和列表展示会自动适配新字段
     action = request.args.get('action', 'list')
@@ -5657,7 +5693,7 @@ def teaching_project_manage():
         {'name': 'project_leader', 'label': '项目负责人', 'type': 'text'},
         {'name': 'project_members', 'label': '项目参与人', 'type': 'text', 'placeholder': '多人请用顿号分隔'},
         {'name': 'approval_department', 'label': '项目批准部门', 'type': 'text'},
-        {'name': 'approval_date', 'label': '项目立项时间', 'type': 'month'},
+        {'name': 'approval_date', 'label': '项目立项时间', 'type': 'date'},
         {'name': 'project_level_id', 'label': '项目级别', 'type': 'select', 'options': project_levels},
         {'name': 'project_category_id', 'label': '项目类别', 'type': 'select', 'options': project_categories},
         {'name': 'funding', 'label': '项目经费（元）', 'type': 'number', 'step': '0.01'},
@@ -5963,7 +5999,7 @@ def member_achievements():
         'conference_paper': '会议论文',
         'textbook': '教材',
         'monograph': '专著',
-        'teaching_project': '教研项目',
+        'teaching_project': '教研教改和课程建设项目',
         'patent': '专利',
         'software_copyright': '软件著作',
         'teaching_achievement_award': '教学成果获奖',
@@ -6156,7 +6192,7 @@ def stats_dashboard():
         ('会议论文', ConferencePaper),
         ('教材', Textbook),
         ('专著', Monograph),
-        ('教研项目', TeachingProject),
+        ('教研教改和课程建设项目', TeachingProject),
         ('专利', Patent),
         ('软著', SoftwareCopyright),
         ('教学成果获奖', TeachingAchievementAward),
@@ -6363,7 +6399,7 @@ def team_list():
 def journal_paper_import():
     current_user = get_current_user()
     if not current_user or current_user.role == 'admin':
-        return redirect(url_for('index'))
+        return redirect(url_for('login'))
 
     zhipu_api_key = get_zhipu_api_key(current_user)
     if not zhipu_api_key:
@@ -6376,11 +6412,102 @@ def journal_paper_import():
         '''
         return render_base_layout('期刊论文智能导入', content, current_user)
 
+    # POST 请求：处理爬取和确认
     if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        # 用户确认导入
+        if action == 'confirm_import':
+            paper_indices = request.form.getlist('selected_papers')
+            papers_json = request.form.get('papers_data', '[]')
+
+            try:
+                papers = json.loads(papers_json)
+            except:
+                flash('数据格式错误，请重新操作！', 'danger')
+                return redirect('/achievement/journal_paper/import')
+
+            if not paper_indices:
+                flash('请至少选择一篇论文进行导入！', 'warning')
+                return redirect('/achievement/journal_paper/import')
+
+            success_count = 0
+            duplicate_count = 0
+            imported_titles = []
+
+            for idx in paper_indices:
+                try:
+                    idx = int(idx)
+                    if idx < 0 or idx >= len(papers):
+                        continue
+
+                    paper = papers[idx]
+
+                    # 检查数据库中是否已有相同论文名称
+                    existing = JournalPaper.query.filter_by(title=paper['论文名称'], user_id=current_user.id).first()
+                    if existing:
+                        duplicate_count += 1
+                        print(f"跳过重复论文：{paper['论文名称']}")
+                        continue
+
+                    ai_result = ai_analyze_journal_full(paper['引用格式'], zhipu_api_key)
+
+                    publish_date = None
+                    if paper.get('发表日期'):
+                        try:
+                            publish_date = datetime.strptime(paper['发表日期'], '%Y-%m-%d').date()
+                        except:
+                            pass
+
+                    journal_paper = JournalPaper(
+                        user_id=current_user.id,
+                        title=paper['论文名称'],
+                        authors=paper['论文作者'],
+                        corresponding_authors=paper.get('通讯作者', ''),
+                        journal_name=paper['期刊名称'],
+                        inclusion_status=paper.get('论文收录情况', ''),
+                        year=paper.get('年') or ai_result.get('卷'),
+                        volume=paper.get('卷') or ai_result.get('卷'),
+                        issue=paper.get('期') or ai_result.get('期'),
+                        page_range=paper.get('起止页码') or ai_result.get('起止页码'),
+                        doi=paper.get('DOI') or ai_result.get('DOI'),
+                        publish_year=paper.get('发表年份') or (ai_result.get('年') if ai_result.get('年') else None),
+                        publish_date=publish_date,
+                        create_time=datetime.now(),
+                        update_time=datetime.now()
+                    )
+                    db.session.add(journal_paper)
+                    db.session.flush()
+
+                    auto_link_contributors(journal_paper, 'journal_paper', paper['论文作者'], current_user.id)
+
+                    success_count += 1
+                    imported_titles.append(paper['论文名称'])
+                except Exception as e:
+                    print(f"导入期刊论文失败：{e}")
+                    continue
+
+            db.session.commit()
+
+            msg = f"导入完成！成功导入 {success_count} 篇论文"
+            if duplicate_count > 0:
+                msg += f"，跳过 {duplicate_count} 篇重复论文"
+            msg += "。"
+
+            content = f'''
+            <div class="alert alert-success">
+                {msg}<br>
+            </div>
+            <a href="/achievement/journal_paper" class="btn">查看论文列表</a>
+            <a href="/achievement/journal_paper/import" class="btn">继续导入</a>
+            '''
+            return render_base_layout('期刊论文智能导入', content, current_user)
+
+        # 初始爬取请求
         keyword = request.form.get('keyword', '').strip()
         max_papers = request.form.get('max_papers', 3, type=int)
         driver_path = request.form.get('driver_path',
-                                       r'C:\Users\mtlxzmd\OneDrive\桌面\新建文件夹\毕设\msedgedriver.exe')
+                                       r'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedgedriver.exe')
 
         if not keyword:
             flash('搜索关键词不能为空！', 'danger')
@@ -6397,57 +6524,75 @@ def journal_paper_import():
             '''
             return render_base_layout('期刊论文智能导入', content, current_user)
 
-        success_count = 0
-        for paper in papers:
-            try:
-                ai_result = ai_analyze_journal_full(paper['引用格式'], zhipu_api_key)
+        # 检查哪些论文已经在数据库中
+        for i, paper in enumerate(papers):
+            existing = JournalPaper.query.filter_by(title=paper['论文名称'], user_id=current_user.id).first()
+            papers[i]['exists_in_db'] = bool(existing)
 
-                publish_date = None
-                if paper.get('发表日期'):
-                    try:
-                        publish_date = datetime.strptime(paper['发表日期'], '%Y-%m-%d').date()
-                    except:
-                        pass
+        # 生成用户确认界面
+        papers_json = json.dumps(papers, ensure_ascii=False)
 
-                journal_paper = JournalPaper(
-                    user_id=current_user.id,
-                    title=paper['论文名称'],
-                    authors=paper['论文作者'],
-                    corresponding_authors=paper.get('通讯作者', ''),
-                    journal_name=paper['期刊名称'],
-                    inclusion_status=paper.get('论文收录情况', ''),
-                    year=paper.get('年') or ai_result.get('年'),
-                    volume=paper.get('卷') or ai_result.get('卷'),
-                    issue=paper.get('期') or ai_result.get('期'),
-                    page_range=paper.get('起止页码') or ai_result.get('起止页码'),
-                    doi=paper.get('DOI') or ai_result.get('DOI'),
-                    publish_year=paper.get('发表年份') or (ai_result.get('年') if ai_result.get('年') else None),
-                    publish_date=publish_date,
-                    create_time=datetime.now(),
-                    update_time=datetime.now()
-                )
-                db.session.add(journal_paper)
-                db.session.flush()
+        table_rows = ''
+        for i, paper in enumerate(papers):
+            checkbox_disabled = 'disabled' if paper.get('exists_in_db') else ''
+            checkbox_checked = '' if paper.get('exists_in_db') else 'checked'
+            status_badge = '<span style="color:#e74c3c;">❌ 已存在</span>' if paper.get(
+                'exists_in_db') else '<span style="color:#27ae60;">✅ 可导入</span>'
 
-                auto_link_contributors(journal_paper, 'journal_paper', paper['论文作者'], current_user.id)
+            table_rows += f'''
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">
+                    <input type="checkbox" name="selected_papers" value="{i}" {checkbox_checked} {checkbox_disabled}>
+                </td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{status_badge}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>{paper['论文名称']}</strong></td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper['论文作者']}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper['期刊名称']}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper.get('年', '')} 年 {paper.get('卷', '')} 卷 {paper.get('期', '')} 期</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper.get('DOI', '')}</td>
+            </tr>
+            '''
 
-                success_count += 1
-            except Exception as e:
-                print(f"导入期刊论文失败：{e}")
-                continue
-
-        db.session.commit()
         content = f'''
-        <div class="alert alert-success">
-            智能导入完成！<br>
-            共爬取 {len(papers)} 篇论文，成功导入 {success_count} 篇。
-        </div>
-        <a href="/achievement/journal_paper" class="btn">查看论文列表</a>
-        <a href="/achievement/journal_paper/import" class="btn">继续导入</a>
-        '''
+                <h2>期刊论文智能导入 - 用户确认</h2>
+                <div class="alert alert-info">
+                    <strong>说明：</strong><br>
+                    1. 系统检测到以下论文，请勾选需要导入的论文（默认全选可导入的论文）<br>
+                    2. <span style="color:#e74c3c;">❌ 已存在</span> 表示数据库中已有相同名称的论文，不能重复导入<br>
+                    3. <span style="color:#27ae60;">✅ 可导入</span> 表示数据库中无重复，可以导入<br>
+                    4. 您可以手动取消勾选某些不想导入的论文
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="action" value="confirm_import">
+                    <textarea name="papers_data" style="display:none;">{papers_json}</textarea>
+
+                    <table style="width:100%; border-collapse:collapse; margin:20px 0;">
+                        <thead>
+                            <tr style="background:#f8f9fa;">
+                                <th style="padding:10px; border:1px solid #ddd;">选择</th>
+                                <th style="padding:10px; border:1px solid #ddd;">状态</th>
+                                <th style="padding:10px; border:1px solid #ddd;">论文名称</th>
+                                <th style="padding:10px; border:1px solid #ddd;">作者</th>
+                                <th style="padding:10px; border:1px solid #ddd;">期刊名称</th>
+                                <th style="padding:10px; border:1px solid #ddd;">卷期</th>
+                                <th style="padding:10px; border:1px solid #ddd;">DOI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {table_rows}
+                        </tbody>
+                    </table>
+
+                    <div style="margin:20px 0;">
+                        <button type="submit" class="btn" style="background:#27ae60; padding:10px 30px;">✅ 确认导入选中的论文</button>
+                        <a href="/achievement/journal_paper/import" class="btn" style="background:#95a5a6; margin-left:10px; padding:10px 30px;">返回重新搜索</a>
+                    </div>
+                </form>
+                '''
         return render_base_layout('期刊论文智能导入', content, current_user)
 
-    # GET请求：显示导入表单
+    # GET 请求：显示导入表单
     form_html = '''
     <h2>期刊论文智能导入（知网爬取）</h2>
     <form method="POST">
@@ -6470,6 +6615,7 @@ def journal_paper_import():
     '''
     return render_base_layout('期刊论文智能导入', form_html, current_user)
 
+
 # ========== 会议论文智能导入路由 ==========
 @app.route('/achievement/conference_paper/import', methods=['GET', 'POST'])
 def conference_paper_import():
@@ -6481,18 +6627,131 @@ def conference_paper_import():
     if not zhipu_api_key:
         content = '''
         <div class="alert alert-danger">
-            未配置智谱AI API Key！<br>
-            请先前往 <a href="/user/api_config">个人设置 > 大模型API配置</a> 配置智谱AI API Key。
+            未配置智谱 AI API Key！<br>
+            请先前往 <a href="/user/api_config">个人设置 > 大模型 API 配置</a> 配置智谱 AI API Key。
         </div>
         <a href="/achievement/conference_paper" class="btn">返回列表</a>
         '''
         return render_base_layout('会议论文智能导入', content, current_user)
 
+    # POST 请求：处理爬取和确认
     if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        # 用户确认导入
+        if action == 'confirm_import':
+            paper_indices = request.form.getlist('selected_papers')
+            papers_json = request.form.get('papers_data', '[]')
+
+            try:
+                papers = json.loads(papers_json)
+            except:
+                flash('数据格式错误，请重新操作！', 'danger')
+                return redirect('/achievement/conference_paper/import')
+
+            if not paper_indices:
+                flash('请至少选择一篇论文进行导入！', 'warning')
+                return redirect('/achievement/conference_paper/import')
+
+            success_count = 0
+            duplicate_count = 0
+
+            for idx in paper_indices:
+                try:
+                    idx = int(idx)
+                    if idx < 0 or idx >= len(papers):
+                        continue
+
+                    paper = papers[idx]
+
+                    # 检查数据库中是否已有相同论文名称
+                    existing = ConferencePaper.query.filter_by(title=paper['论文名称']).first()
+                    if existing:
+                        duplicate_count += 1
+                        print(f"跳过重复论文：{paper['论文名称']}")
+                        continue
+
+                    ai_result = ai_analyze_citation(paper['引用格式'], zhipu_api_key)
+
+                    conference_start_date = None
+                    conference_end_date = None
+                    conference_time_str = None
+
+                    if paper.get('会议时间'):
+                        time_text = paper['会议时间'].strip()
+                        conference_time_str = time_text
+
+                        import re
+                        date_range_pattern = r'(\\d{{4}})[.\\-/](\\d{{1,2}})[.\\-/](\\d{{1,2}})\\s*[-–—]\\s*(\\d{{4}})[.\\-/](\\d{{1,2}})[.\\-/](\\d{{1,2}})'
+                        match = re.search(date_range_pattern, time_text)
+
+                        if match:
+                            start_year, start_month, start_day = match.group(1), match.group(2), match.group(3)
+                            end_year, end_month, end_day = match.group(4), match.group(5), match.group(6)
+                            try:
+                                conference_start_date = datetime(int(start_year), int(start_month),
+                                                                 int(start_day)).date()
+                                conference_end_date = datetime(int(end_year), int(end_month), int(end_day)).date()
+                            except:
+                                pass
+                        else:
+                            single_date_pattern = r'(\\d{{4}})[.\\-/](\\d{{1,2}})[.\\-/](\\d{{1,2}})'
+                            match = re.search(single_date_pattern, time_text)
+                            if match:
+                                try:
+                                    year, month, day = int(match.group(1)), int(match.group(2)), int(match.group(3))
+                                    conference_start_date = datetime(year, month, day).date()
+                                    conference_end_date = conference_start_date
+                                except:
+                                    pass
+
+                    conference_paper = ConferencePaper(
+                        user_id=current_user.id,
+                        title=paper['论文名称'],
+                        authors=paper['论文作者'],
+                        corresponding_authors=paper.get('通讯作者', ''),
+                        conference_name=paper['会议名称'],
+                        conference_time=conference_time_str,
+                        conference_start_date=conference_start_date,
+                        conference_end_date=conference_end_date,
+                        conference_place=paper.get('会议地点'),
+                        page_range=paper.get('起止页码') or ai_result.get('起止页码'),
+                        doi=paper.get('DOI') or ai_result.get('DOI'),
+                        publish_year=paper.get('发表年份') or (ai_result.get('年') if ai_result.get('年') else None),
+                        create_time=datetime.now(),
+                        update_time=datetime.now()
+                    )
+                    db.session.add(conference_paper)
+                    db.session.flush()
+
+                    auto_link_contributors(conference_paper, 'conference_paper', paper['论文作者'], current_user.id)
+
+                    success_count += 1
+                except Exception as e:
+                    print(f"导入会议论文失败：{e}")
+                    continue
+
+            db.session.commit()
+
+            msg = f"导入完成！成功导入 {success_count} 篇论文"
+            if duplicate_count > 0:
+                msg += f"，跳过 {duplicate_count} 篇重复论文"
+            msg += "。"
+
+            content = f'''
+            <div class="alert alert-success">
+                {msg}<br>
+            </div>
+            <a href="/achievement/conference_paper" class="btn">查看论文列表</a>
+            <a href="/achievement/conference_paper/import" class="btn">继续导入</a>
+            '''
+            return render_base_layout('会议论文智能导入', content, current_user)
+
+        # 初始爬取请求
         keyword = request.form.get('keyword', '').strip()
         max_papers = request.form.get('max_papers', 3, type=int)
         driver_path = request.form.get('driver_path',
-                                       r'C:\Users\mtlxzmd\OneDrive\桌面\新建文件夹\毕设\msedgedriver.exe')
+                                       r'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedgedriver.exe')
 
         if not keyword:
             flash('搜索关键词不能为空！', 'danger')
@@ -6509,80 +6768,75 @@ def conference_paper_import():
             '''
             return render_base_layout('会议论文智能导入', content, current_user)
 
-        success_count = 0
-        for paper in papers:
-            try:
-                ai_result = ai_analyze_citation(paper['引用格式'], zhipu_api_key)
+        # 检查哪些论文已经在数据库中
+        for i, paper in enumerate(papers):
+            existing = ConferencePaper.query.filter_by(title=paper['论文名称']).first()
+            papers[i]['exists_in_db'] = bool(existing)
 
-                conference_start_date = None
-                conference_end_date = None
-                conference_time_str = None
+        # 生成用户确认界面
+        papers_json = json.dumps(papers, ensure_ascii=False)
 
-                if paper.get('会议时间'):
-                    time_text = paper['会议时间'].strip()
-                    conference_time_str = time_text
+        table_rows = ''
+        for i, paper in enumerate(papers):
+            checkbox_disabled = 'disabled' if paper.get('exists_in_db') else ''
+            checkbox_checked = '' if paper.get('exists_in_db') else 'checked'
+            status_badge = '<span style="color:#e74c3c;">❌ 已存在</span>' if paper.get(
+                'exists_in_db') else '<span style="color:#27ae60;">✅ 可导入</span>'
 
-                    import re
-                    date_range_pattern = r'(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-–—]\s*(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})'
-                    match = re.search(date_range_pattern, time_text)
+            table_rows += f'''
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">
+                    <input type="checkbox" name="selected_papers" value="{i}" {checkbox_checked} {checkbox_disabled}>
+                </td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{status_badge}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>{paper['论文名称']}</strong></td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper['论文作者']}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper['会议名称']}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper.get('会议时间', '')}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{paper.get('DOI', '')}</td>
+            </tr>
+            '''
 
-                    if match:
-                        start_year, start_month, start_day = match.group(1), match.group(2), match.group(3)
-                        end_year, end_month, end_day = match.group(4), match.group(5), match.group(6)
-                        try:
-                            conference_start_date = datetime(int(start_year), int(start_month), int(start_day)).date()
-                            conference_end_date = datetime(int(end_year), int(end_month), int(end_day)).date()
-                        except:
-                            pass
-                    else:
-                        single_date_pattern = r'(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})'
-                        match = re.search(single_date_pattern, time_text)
-                        if match:
-                            try:
-                                year, month, day = int(match.group(1)), int(match.group(2)), int(match.group(3))
-                                conference_start_date = datetime(year, month, day).date()
-                                conference_end_date = conference_start_date
-                            except:
-                                pass
-
-                conference_paper = ConferencePaper(
-                    user_id=current_user.id,
-                    title=paper['论文名称'],
-                    authors=paper['论文作者'],
-                    corresponding_authors=paper.get('通讯作者', ''),
-                    conference_name=paper['会议名称'],
-                    conference_time=conference_time_str,
-                    conference_start_date=conference_start_date,
-                    conference_end_date=conference_end_date,
-                    conference_place=paper.get('会议地点'),
-                    page_range=paper.get('起止页码') or ai_result.get('起止页码'),
-                    doi=paper.get('DOI') or ai_result.get('DOI'),
-                    publish_year=paper.get('发表年份') or (ai_result.get('年') if ai_result.get('年') else None),
-                    create_time=datetime.now(),
-                    update_time=datetime.now()
-                )
-                db.session.add(conference_paper)
-                db.session.flush()
-
-                auto_link_contributors(conference_paper, 'conference_paper', paper['论文作者'], current_user.id)
-
-                success_count += 1
-            except Exception as e:
-                print(f"导入会议论文失败：{e}")
-                continue
-
-        db.session.commit()
         content = f'''
-        <div class="alert alert-success">
-            智能导入完成！<br>
-            共爬取 {len(papers)} 篇论文，成功导入 {success_count} 篇。
-        </div>
-        <a href="/achievement/conference_paper" class="btn">查看论文列表</a>
-        <a href="/achievement/conference_paper/import" class="btn">继续导入</a>
-        '''
+                <h2>会议论文智能导入 - 用户确认</h2>
+                <div class="alert alert-info">
+                    <strong>说明：</strong><br>
+                    1. 系统检测到以下论文，请勾选需要导入的论文（默认全选可导入的论文）<br>
+                    2. <span style="color:#e74c3c;">❌ 已存在</span> 表示数据库中已有相同名称的论文，不能重复导入<br>
+                    3. <span style="color:#27ae60;">✅ 可导入</span> 表示数据库中无重复，可以导入<br>
+                    4. 您可以手动取消勾选某些不想导入的论文
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="action" value="confirm_import">
+                    <textarea name="papers_data" style="display:none;">{papers_json}</textarea>
+
+                    <table style="width:100%; border-collapse:collapse; margin:20px 0;">
+                        <thead>
+                            <tr style="background:#f8f9fa;">
+                                <th style="padding:10px; border:1px solid #ddd;">选择</th>
+                                <th style="padding:10px; border:1px solid #ddd;">状态</th>
+                                <th style="padding:10px; border:1px solid #ddd;">论文名称</th>
+                                <th style="padding:10px; border:1px solid #ddd;">作者</th>
+                                <th style="padding:10px; border:1px solid #ddd;">会议名称</th>
+                                <th style="padding:10px; border:1px solid #ddd;">会议时间</th>
+                                <th style="padding:10px; border:1px solid #ddd;">DOI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {table_rows}
+                        </tbody>
+                    </table>
+
+                    <div style="margin:20px 0;">
+                        <button type="submit" class="btn" style="background:#27ae60; padding:10px 30px;">✅ 确认导入选中的论文</button>
+                        <a href="/achievement/conference_paper/import" class="btn" style="background:#95a5a6; margin-left:10px; padding:10px 30px;">返回重新搜索</a>
+                    </div>
+                </form>
+                '''
         return render_base_layout('会议论文智能导入', content, current_user)
 
-    # GET请求：显示导入表单
+    # GET 请求：显示导入表单
     form_html = '''
     <h2>会议论文智能导入（知网爬取）</h2>
     <form method="POST">
@@ -6608,41 +6862,71 @@ def conference_paper_import():
 
 @app.route('/achievement/ocr_import', methods=['GET', 'POST'])
 def ocr_import():
-    """OCR图片识别导入成果（新增PDF支持）"""
+    """OCR 智能导入成果（支持图片/PDF，识别结果可编辑）"""
     current_user = get_current_user()
-    if not current_user:
-        return redirect(url_for('login'))
+    if not current_user or current_user.role == 'admin':
+        return redirect(url_for('index'))
 
-    # 检查百度API配置（OCR必需）
+    # 检查百度 API 配置（OCR 必需）
     api_config = current_user.get_api_config()
     if not api_config.get('baidu', {}).get('api_key') or not api_config.get('baidu', {}).get('secret_key'):
         content = '''
         <div class="alert alert-danger">
-            未配置百度API Key/Secret Key！<br>
-            请先前往 <a href="/user/api_config">个人设置 > 大模型API配置</a> 配置百度API。
+            未配置百度 API Key/Secret Key！<br>
+            请先前往 <a href="/user/api_config">个人设置 > 大模型 API 配置</a> 配置百度 API。
         </div>
         <a href="/" class="btn">返回首页</a>
         '''
-        return render_base_layout('OCR智能导入', content, current_user)
+        return render_base_layout('OCR 智能导入', content, current_user)
 
-    # 检查智谱API配置（AI分析可选）
+    # 检查智谱 API 配置（AI 分析可选）
     zhipu_configured = bool(get_zhipu_api_key(current_user))
 
-    # 初始化success变量（关键修复：提前定义）
+    # GET 请求：显示上传表单
+    if request.method != 'POST':
+        ai_tip = ""
+        if not zhipu_configured:
+            ai_tip = '''
+            <div class="alert alert-warning">
+                未配置智谱 AI API Key，将使用基础 OCR 识别（无 AI 智能分析）<br>
+                配置地址：<a href="/user/api_config">个人设置 > 大模型 API 配置</a>
+            </div>
+            '''
+
+        form_html = f'''
+            <h2>OCR 智能导入成果（支持图片/PDF）</h2>
+            {ai_tip}
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>上传成果图片/PDF <span style="color:red;">*</span></label>
+                    <input type="file" name="image_file" accept="image/*,.pdf" required>
+                    <p style="margin-top:5px; color:#666;">
+                        支持格式：JPG/PNG/GIF/PDF，PDF 文件会自动转换为图片逐页识别<br>
+                        <strong>文件大小限制：100MB</strong>，过大的 PDF 建议先拆分后上传
+                    </p>
+                </div>
+                <button type="submit" class="btn" style="background:#27ae60;">开始识别</button>
+                <a href="/" class="btn" style="background:#95a5a6; margin-left:10px;">取消</a>
+            </form>
+            '''
+        return render_base_layout('OCR 智能导入', form_html, current_user)
+
+    # POST 请求：处理文件上传和识别
     success = False
     ocr_text = ""
     temp_images = []
     achievement_info = {}
+    msg = ''
 
     if request.method == 'POST':
         # 处理文件上传
         if 'image_file' not in request.files:
-            flash('请上传图片/PDF文件！', 'danger')
+            flash('请上传图片/PDF 文件！', 'danger')
             return redirect(request.url)
 
         file = request.files['image_file']
         if file.filename == '':
-            flash('请选择图片/PDF文件！', 'danger')
+            flash('请选择图片/PDF 文件！', 'danger')
             return redirect(request.url)
 
         if file and allowed_file(file.filename):
@@ -6651,43 +6935,32 @@ def ocr_import():
             if not os.path.exists(temp_path):
                 os.makedirs(temp_path)
 
-            # 先从原始文件名提取扩展名，避免 secure_filename 过滤掉中文字符后丢失信息
             original_filename = file.filename
 
-            # 检查是否有扩展名
             if '.' not in original_filename:
                 flash('文件格式错误，请重新上传！', 'danger')
                 return redirect(request.url)
 
-            # 提取扩展名
             file_ext = original_filename.rsplit('.', 1)[1].lower()
-
-            # 生成安全文件名（使用时间戳 + 原扩展名）
             timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
             filename = f"{timestamp}.{file_ext}"
-
             upload_path = os.path.join(temp_path, filename)
             file.save(upload_path)
 
             try:
-                # ========== 新增PDF处理逻辑 ==========
+                # PDF 处理逻辑
                 if file_ext == 'pdf':
-                    # PDF文件：先转图片，再逐页OCR
-                    flash('检测到PDF文件，正在转换为图片...', 'info')
                     try:
                         temp_images = pdf_to_images(upload_path, temp_path)
                     except Exception as e:
-                        # 专门处理poppler错误
-                        flash(f'PDF转换失败：{str(e)}<br>请安装poppler并配置路径！', 'danger')
-                        # 清理临时文件
+                        flash(f'PDF 转换失败：{str(e)}<br>请安装 poppler 并配置路径！', 'danger')
                         if os.path.exists(upload_path):
                             os.remove(upload_path)
                         content = f'''
                         <a href="/achievement/ocr_import" class="btn">重新上传</a>
                         '''
-                        return render_base_layout('OCR智能导入', content, current_user)
+                        return render_base_layout('OCR 智能导入', content, current_user)
 
-                    # 逐页识别PDF转换后的图片
                     for idx, img_path in enumerate(temp_images):
                         page_text, err = baidu_ocr_recognize(img_path, current_user)
                         if err:
@@ -6695,27 +6968,22 @@ def ocr_import():
                             continue
                         ocr_text += f"\n=== 第{idx + 1}页 ===\n{page_text}"
                 else:
-                    # 图片文件：直接OCR识别
                     ocr_text, err = baidu_ocr_recognize(upload_path, current_user)
                     if err:
-                        flash(f'OCR识别失败：{err}', 'danger')
-                        # 清理临时文件
+                        flash(f'OCR 识别失败：{err}', 'danger')
                         if os.path.exists(upload_path):
                             os.remove(upload_path)
                         return redirect(request.url)
 
                 if not ocr_text.strip():
                     flash('未识别到任何文本！', 'warning')
-                    # 清理临时文件
                     if os.path.exists(upload_path):
                         os.remove(upload_path)
                     return redirect(request.url)
 
-                # ========== 原有AI分析逻辑保持不变 ==========
-                # AI分析（如果配置了智谱API）
+                # AI 分析（如果配置了智谱 API）
                 ai_info = {}
                 if zhipu_configured:
-                    flash('正在使用AI分析识别结果，请稍候...', 'info')
                     ai_info = ai_analyze_achievement_text(ocr_text, get_zhipu_api_key(current_user))
                     achievement_info = {
                         'type_name': ai_info.get('type_name'),
@@ -6725,210 +6993,510 @@ def ocr_import():
                         'ai_data': ai_info
                     }
                 else:
-                    # 兜底：基础解析
                     achievement_info = extract_achievement_info(ocr_text)
                     achievement_info['raw_text'] = ocr_text
 
-                # 创建成果记录
-                success, msg, type_name, achievement_id = create_achievement_from_ocr(achievement_info, current_user)
-                flash(msg, 'success' if success else 'danger')
+                # ========== 核心修改：显示可编辑文本框，不直接导入 ==========
+                # 生成成果类型选项
+                type_options = ''
+                for type_name in achievement_rules.keys():
+                    selected = 'selected' if type_name == achievement_info.get('type_name', '') else ''
+                    type_options += f'<option value="{type_name}" {selected}>{type_name}</option>'
+
+                # 生成详细字段表单（根据 AI 分析结果）
+                detail_fields_html = ''
+                if zhipu_configured and ai_info:
+                    # 根据成果类型生成对应所有字段
+                    field_mapping = {
+                        '期刊论文': [
+                            ('title', '论文名称', 'text', ai_info.get('title', '')),
+                            ('authors', '作者', 'text', ai_info.get('authors', '')),
+                            ('corresponding_authors', '通讯作者', 'text', ai_info.get('corresponding_authors', '')),
+                            ('journal_name', '期刊名称', 'text', ai_info.get('journal_name', '')),
+                            ('inclusion_status', '收录情况', 'text', ai_info.get('inclusion_status', '')),
+                            ('year', '年', 'number', ai_info.get('year', '')),
+                            ('volume', '卷', 'text', ai_info.get('volume', '')),
+                            ('issue', '期', 'text', ai_info.get('issue', '')),
+                            ('page_range', '起止页码', 'text', ai_info.get('page_range', '')),
+                            ('doi', 'DOI', 'text', ai_info.get('doi', '')),
+                            ('publish_year', '发表年份', 'number', ai_info.get('publish_year', '')),
+                            ('publish_date', '发表日期', 'date', ai_info.get('publish_date', '')),
+                        ],
+                        '会议论文': [
+                            ('title', '论文名称', 'text', ai_info.get('title', '')),
+                            ('authors', '作者', 'text', ai_info.get('authors', '')),
+                            ('corresponding_authors', '通讯作者', 'text', ai_info.get('corresponding_authors', '')),
+                            ('conference_name', '会议名称', 'text', ai_info.get('conference_name', '')),
+                            ('conference_time', '会议时间', 'text', ai_info.get('conference_time', '')),
+                            ('conference_place', '会议地点', 'text', ai_info.get('conference_place', '')),
+                            ('page_range', '起止页码', 'text', ai_info.get('page_range', '')),
+                            ('doi', 'DOI', 'text', ai_info.get('doi', '')),
+                            ('publish_year', '发表年份', 'number', ai_info.get('publish_year', '')),
+                        ],
+                        '教材': [
+                            ('title', '教材名称', 'text', ai_info.get('title', '')),
+                            ('textbook_series', '教材系列', 'text', ai_info.get('textbook_series', '')),
+                            ('chief_editor', '主编', 'text', ai_info.get('chief_editor', '')),
+                            ('associate_editors', '副主编', 'text', ai_info.get('associate_editors', '')),
+                            ('editorial_board', '编委', 'text', ai_info.get('editorial_board', '')),
+                            ('publisher', '出版社', 'text', ai_info.get('publisher', '')),
+                            ('isbn', 'ISBN', 'text', ai_info.get('isbn', '')),
+                            ('cip_number', 'CIP 核字号', 'text', ai_info.get('cip_number', '')),
+                            ('publication_year', '出版年份', 'number', ai_info.get('publication_year', '')),
+                            ('publication_month', '出版月份', 'number', ai_info.get('publication_month', '')),
+                            ('edition', '版次', 'text', ai_info.get('edition', '')),
+                            ('word_count', '字数', 'text', ai_info.get('word_count', '')),
+                            ('price', '定价', 'text', ai_info.get('price', '')),
+                            ('textbook_level', '教材级别', 'text', ai_info.get('textbook_level', '')),
+                            ('textbook_type', '教材类型', 'text', ai_info.get('textbook_type', '')),
+                            ('applicable_majors', '适用专业', 'text', ai_info.get('applicable_majors', '')),
+                            ('remarks', '备注', 'textarea', ai_info.get('remarks', '')),
+                        ],
+                        '专著': [
+                            ('title', '专著名称', 'text', ai_info.get('title', '')),
+                            ('textbook_series', '专著系列', 'text', ai_info.get('textbook_series', '')),
+                            ('chief_editor', '主编', 'text', ai_info.get('chief_editor', '')),
+                            ('associate_editors', '副主编', 'text', ai_info.get('associate_editors', '')),
+                            ('editorial_board', '编委', 'text', ai_info.get('editorial_board', '')),
+                            ('publisher', '出版社', 'text', ai_info.get('publisher', '')),
+                            ('isbn', 'ISBN', 'text', ai_info.get('isbn', '')),
+                            ('cip_number', 'CIP 核字号', 'text', ai_info.get('cip_number', '')),
+                            ('publication_year', '出版年份', 'number', ai_info.get('publication_year', '')),
+                            ('publication_month', '出版月份', 'number', ai_info.get('publication_month', '')),
+                            ('edition', '版次', 'text', ai_info.get('edition', '')),
+                            ('word_count', '字数', 'text', ai_info.get('word_count', '')),
+                            ('price', '定价', 'text', ai_info.get('price', '')),
+                            ('monograph_type', '专著类型', 'text', ai_info.get('monograph_type', '')),
+                            ('applicable_majors', '适用专业', 'text', ai_info.get('applicable_majors', '')),
+                            ('remarks', '备注', 'textarea', ai_info.get('remarks', '')),
+                        ],
+                        '发明专利': [
+                            ('title', '专利名称', 'text', ai_info.get('title', '')),
+                            ('patentee', '专利权人', 'text', ai_info.get('patentee', '')),
+                            ('address', '地址', 'text', ai_info.get('address', '')),
+                            ('inventors', '发明人', 'text', ai_info.get('inventors', '')),
+                            ('patent_number', '专利号', 'text', ai_info.get('patent_number', '')),
+                            ('grant_announcement_number', '授权公告号', 'text',
+                             ai_info.get('grant_announcement_number', '')),
+                            ('apply_date', '申请日', 'date', ai_info.get('apply_date', '')),
+                            ('grant_announcement_date', '授权公告日', 'date',
+                             ai_info.get('grant_announcement_date', '')),
+                            ('applicant_at_apply_date', '申请日时申请人', 'text',
+                             ai_info.get('applicant_at_apply_date', '')),
+                            ('inventor_at_apply_date', '申请日时发明人', 'text',
+                             ai_info.get('inventor_at_apply_date', '')),
+                        ],
+                        '实用新型专利': [
+                            ('title', '专利名称', 'text', ai_info.get('title', '')),
+                            ('patentee', '专利权人', 'text', ai_info.get('patentee', '')),
+                            ('address', '地址', 'text', ai_info.get('address', '')),
+                            ('inventors', '发明人', 'text', ai_info.get('inventors', '')),
+                            ('patent_number', '专利号', 'text', ai_info.get('patent_number', '')),
+                            ('grant_announcement_number', '授权公告号', 'text',
+                             ai_info.get('grant_announcement_number', '')),
+                            ('apply_date', '申请日', 'date', ai_info.get('apply_date', '')),
+                            ('grant_announcement_date', '授权公告日', 'date',
+                             ai_info.get('grant_announcement_date', '')),
+                        ],
+                        '软著': [
+                            ('title', '软件名称', 'text', ai_info.get('title', '')),
+                            ('copyright_owner', '著作权人', 'text', ai_info.get('copyright_owner', '')),
+                            ('completion_date', '开发完成日期', 'date', ai_info.get('completion_date', '')),
+                            ('first_publication_date', '首次发表日期', 'date',
+                             ai_info.get('first_publication_date', '')),
+                            ('right_acquisition_method', '权利取得方式', 'text',
+                             ai_info.get('right_acquisition_method', '')),
+                            ('right_scope', '权利范围', 'text', ai_info.get('right_scope', '')),
+                            ('copyright_number', '登记号', 'text', ai_info.get('copyright_number', '')),
+                            ('certificate_number', '证书号', 'text', ai_info.get('certificate_number', '')),
+                            ('register_date', '登记日期', 'date', ai_info.get('register_date', '')),
+                        ],
+                        '教学成果获奖': [
+                            ('title', '成果名称', 'text', ai_info.get('title', '')),
+                            ('main_contributors', '主要完成人', 'text', ai_info.get('main_contributors', '')),
+                            ('completing_units', '成果完成单位', 'text', ai_info.get('completing_units', '')),
+                            ('award_year', '获奖年度', 'text', ai_info.get('award_year', '')),
+                            ('certificate_number', '证书编号', 'text', ai_info.get('certificate_number', '')),
+                            ('awarding_unit', '颁奖单位', 'text', ai_info.get('awarding_unit', '')),
+                            ('award_date', '获奖日期', 'date', ai_info.get('award_date', '')),
+                        ],
+                        '教学竞赛获奖': [
+                            ('title', '竞赛名称', 'text', ai_info.get('title', '')),
+                            ('award_year', '获奖年度', 'text', ai_info.get('award_year', '')),
+                            ('winners', '获奖人', 'text', ai_info.get('winners', '')),
+                            ('winner_unit', '获奖人所在单位', 'text', ai_info.get('winner_unit', '')),
+                            ('competition_name', '竞赛主办方', 'text', ai_info.get('competition_name', '')),
+                            ('award_date', '获奖日期', 'date', ai_info.get('award_date', '')),
+                            ('certificate_number', '证书编号', 'text', ai_info.get('certificate_number', '')),
+                        ],
+                        '指导学生获奖': [
+                            ('title', '获奖名称', 'text', ai_info.get('title', '')),
+                            ('award_year', '获奖年度', 'text', ai_info.get('award_year', '')),
+                            ('student_name', '获奖学生', 'text', ai_info.get('student_name', '')),
+                            ('project_name', '项目名称', 'text', ai_info.get('project_name', '')),
+                            ('teacher_name', '指导教师', 'text', ai_info.get('teacher_name', '')),
+                            ('competition_name', '竞赛名称', 'text', ai_info.get('competition_name', '')),
+                            ('award_date', '获奖日期', 'date', ai_info.get('award_date', '')),
+                            ('certificate_number', '证书编号', 'text', ai_info.get('certificate_number', '')),
+                        ],
+                        '教研教改和课程建设项目': [
+                            ('title', '项目名称', 'text', ai_info.get('title', '')),
+                            ('project_code', '项目编号', 'text', ai_info.get('project_code', '')),
+                            ('project_leader', '项目负责人', 'text', ai_info.get('project_leader', '')),
+                            ('project_members', '项目参与人', 'text', ai_info.get('project_members', '')),
+                            ('approval_department', '批准部门', 'text', ai_info.get('approval_department', '')),
+                            ('approval_date', '立项时间', 'date', ai_info.get('approval_date', '')),
+                            ('start_date', '开始时间', 'date', ai_info.get('start_date', '')),
+                            ('end_date', '结束时间', 'date', ai_info.get('end_date', '')),
+                            ('funding', '经费', 'number', ai_info.get('funding', '')),
+                        ],
+                    }
+
+                    fields = field_mapping.get(ai_info.get('type_name', ''), [])
+                    for field_name, field_label, field_type, field_value in fields:
+                        if field_type == 'textarea':
+                            detail_fields_html += f'''
+                                                                <div class="form-group">
+                                                                    <label>{field_label}</label>
+                                                                    <textarea name="detail_{field_name}" rows="3" style="width:100%; padding:10px; font-size:13px;" placeholder="请输入{field_label}">{field_value}</textarea>
+                                                                </div>
+                                                                '''
+                        else:
+                            detail_fields_html += f'''
+                                                                <div class="form-group">
+                                                                    <label>{field_label}</label>
+                                                                    <input type="{field_type}" name="detail_{field_name}" value="{field_value}" placeholder="请输入{field_label}">
+                                                                </div>
+                                                                '''
+
+                            # 构建确认导入表单页面
+                            # 将 field_mapping 转换为 JSON 传递给前端 JavaScript
+                            field_mapping_json = json.dumps(field_mapping, ensure_ascii=False)
+
+                            # 提取 AI 初始值（去掉 type_name、title、confidence 等控制字段）
+                            ai_initial_values = {k: v for k, v in ai_info.items() if
+                                                 k not in ['type_name', 'title', 'confidence', 'raw_text', 'ai_data']}
+                            ai_initial_values_json = json.dumps(ai_initial_values, ensure_ascii=False)
+
+                            form_content = f'''
+                                <form method="POST" action="/achievement/ocr_import/confirm" id="confirmForm">
+                                    <input type="hidden" name="ocr_text" id="ocr_text" value="{ocr_text.replace('"', '&quot;')}">
+                                    <input type="hidden" name="ai_data" id="ai_data" value='{json.dumps(ai_info, ensure_ascii=False) if ai_info else "{}"}'>
+
+                                    <div style="margin-bottom:20px;">
+                                        <div class="form-group">
+                                            <label>成果类型 <span style="color:red;">*</span></label>
+                                            <select name="type_name" id="type_name" onchange="updateDetailFields()" required>
+                                                {type_options}
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>成果名称 <span style="color:red;">*</span></label>
+                                            <input type="text" name="title" id="title" value="{achievement_info.get('title', '')}" required placeholder="请输入成果名称" onblur="checkDuplicate()">
+                                            <div id="duplicateTip" style="margin-top:8px; font-size:14px; padding:10px; border-radius:4px; display:none;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 详细字段区域 -->
+                                    <div id="detailFieldsArea" style="margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:5px;">
+                                        <h5 style="margin-bottom:15px;">📋 详细字段（AI 自动提取，可修改）</h5>
+                                        {detail_fields_html if detail_fields_html else '<p style="color:#999;">暂无详细字段，请在下方原始识别文本中提取</p>'}
+                                    </div>
+
+                                    <!-- 原始识别文本区域 -->
+                                    <div class="form-group">
+                                        <label>原始识别文本（可编辑）<span style="color:red;">*</span></label>
+                                        <textarea name="raw_text" id="raw_text" rows="15" style="width:100%; padding:10px; font-family:monospace; font-size:13px;" required>{ocr_text}</textarea>
+                                        <p style="margin-top:5px; color:#666;">
+                                            💡 提示：可直接在此编辑识别文本，或从上方详细字段中补充信息
+                                        </p>
+                                    </div>
+
+                                    <!-- 置信度提示 -->
+                                    {f'<div class="alert alert-warning">AI 识别置信度：<strong>{achievement_info.get("confidence", 0):.2f}</strong>（低于 0.6 建议仔细核对）</div>' if achievement_info.get('confidence', 0) > 0 else ''}
+
+                                    <div style="margin-top:30px;">
+                                        <button type="submit" name="action" value="confirm" class="btn" style="background:#27ae60; margin-right:10px;" id="submitBtn">✅ 确认导入</button>
+                                        <button type="button" onclick="window.location.href='/achievement/ocr_import'" class="btn" style="background:#95a5a6;">🔄 重新识别</button>
+                                        <a href="/" class="btn" style="background:#3498db; margin-left:10px;">🏠 返回首页</a>
+                                    </div>
+                                </form>
+
+                                <script>
+                                    let isDuplicate = false;
+                                    
+                                    // 存储 AI 提取的初始值
+                                    const aiInitialValues = {ai_initial_values_json};
+                                    
+                                    // 存储字段映射关系
+                                    const fieldMapping = {field_mapping_json};
+                                    
+                                    // 查重函数
+                                    async function checkDuplicate() {{
+                                        const title = document.getElementById('title').value.trim();
+                                        const typeName = document.getElementById('type_name').value;
+                                        const tipDiv = document.getElementById('duplicateTip');
+                                        const submitBtn = document.getElementById('submitBtn');
+                                        
+                                        if (!title) {{
+                                            tipDiv.style.display = 'none';
+                                            tipDiv.innerHTML = '';
+                                            isDuplicate = false;
+                                            return;
+                                        }}
+                                        
+                                        tipDiv.style.display = 'block';
+                                        tipDiv.style.backgroundColor = '#fff3cd';
+                                        tipDiv.style.color = '#856404';
+                                        tipDiv.style.border = '1px solid #ffc107';
+                                        tipDiv.innerHTML = '⏳ 正在检查重复...';
+                                        
+                                        try {{
+                                            const response = await fetch('/achievement/check_duplicate', {{
+                                                method: 'POST',
+                                                headers: {{'Content-Type': 'application/json'}},
+                                                body: JSON.stringify({{title: title, type_name: typeName}})
+                                            }});
+                                            
+                                            const result = await response.json();
+                                            
+                                            if (result.exists) {{
+                                                tipDiv.style.backgroundColor = '#f8d7da';
+                                                tipDiv.style.color = '#721c24';
+                                                tipDiv.style.border = '1px solid #f5c6cb';
+                                                tipDiv.innerHTML = '<strong>❌ 检测到重复成果！</strong><br>《' + title + '》已存在于数据库中，无法重复导入！<br><small>' + (result.message || '') + '</small>';
+                                                isDuplicate = true;
+                                                submitBtn.disabled = true;
+                                                submitBtn.style.background = '#ccc';
+                                                submitBtn.style.cursor = 'not-allowed';
+                                                submitBtn.title = '检测到重复成果，无法导入';
+                                            }} else {{
+                                                tipDiv.style.backgroundColor = '#d4edda';
+                                                tipDiv.style.color = '#155724';
+                                                tipDiv.style.border = '1px solid #c3e6cb';
+                                                tipDiv.innerHTML = '<strong>✅ 未检测到重复</strong><br>可以导入该成果';
+                                                isDuplicate = false;
+                                                submitBtn.disabled = false;
+                                                submitBtn.style.background = '#27ae60';
+                                                submitBtn.style.cursor = 'pointer';
+                                                submitBtn.removeAttribute('title');
+                                            }}
+                                        }} catch (error) {{
+                                            console.error('查重检查失败:', error);
+                                            tipDiv.style.display = 'none';
+                                            tipDiv.innerHTML = '';
+                                            isDuplicate = false;
+                                            submitBtn.disabled = false;
+                                        }}
+                                    }}
+                                    
+                                    // 根据成果类型动态更新详细字段
+                                    function updateDetailFields() {{
+                                        const typeName = document.getElementById('type_name').value;
+                                        const detailFieldsDiv = document.getElementById('detailFieldsArea');
+                                        
+                                        if (!typeName) {{
+                                            detailFieldsDiv.innerHTML = '<p style="color:#999;">暂无详细字段</p>';
+                                            return;
+                                        }}
+                                        
+                                        const fields = fieldMapping[typeName] || [];
+                                        let html = '<h5 style="margin-bottom:15px;">📋 详细字段（AI 自动提取，可修改）</h5>';
+                                        
+                                        if (fields.length === 0) {{
+                                            html += '<p style="color:#999;">暂无详细字段</p>';
+                                        }} else {{
+                                            fields.forEach(function(field) {{
+                                                const fieldName = field[0];
+                                                const fieldLabel = field[1];
+                                                const fieldType = field[2];
+                                                const initialValue = aiInitialValues[fieldName] || '';
+                                                
+                                                if (fieldType === 'textarea') {{
+                                                    html += `                                                        <div class="form-group">
+                                                            <label>${{fieldLabel}}</label>
+                                                            <textarea name="detail_${{fieldName}}" rows="3" style="width:100%; padding:10px; font-size:13px;" placeholder="请输入${{fieldLabel}}">${{initialValue}}</textarea>
+                                                        </div>
+                                                    `;
+                                                }} else {{
+                                                    html += `                                                        <div class="form-group">
+                                                            <label>${{fieldLabel}}</label>
+                                                            <input type="${{fieldType}}" name="detail_${{fieldName}}" value="${{initialValue}}" placeholder="请输入${{fieldLabel}}">
+                                                        </div>
+                                                    `;
+                                                }}
+                                            }});
+                                        }}
+                                        
+                                        detailFieldsDiv.innerHTML = html;
+                                    }}
+                                    
+                                    // 表单提交前再次检查
+                                    document.getElementById('confirmForm').addEventListener('submit', function(e) {{
+                                        if (isDuplicate) {{
+                                            e.preventDefault();
+                                            alert('检测到重复成果，无法导入！请修改成果名称。');
+                                            return false;
+                                        }}
+                                    }});
+                                    
+                                    // 页面加载时初始化一次字段
+                                    window.addEventListener('DOMContentLoaded', function() {{
+                                        updateDetailFields();
+                                    }});
+                                </script>
+                                '''
+
+                            return render_base_layout('OCR 智能导入 - 结果确认', form_content, current_user)
 
 
             except Exception as e:
-                # 捕获所有异常并友好提示
                 success = False
                 msg = f'处理失败：{str(e)}'
-                logger.error(f"OCR导入处理异常：{str(e)}")
+                logger.error(f"OCR 导入处理异常：{str(e)}")
                 import traceback
                 logger.error(traceback.format_exc())
                 flash(msg, 'danger')
             finally:
-                # ========== 清理临时文件 ==========
-                # 删除上传的源文件
+                # 清理临时文件
                 if os.path.exists(upload_path):
                     os.remove(upload_path)
-
-                # 删除 PDF 转换的临时图片
                 for img_path in temp_images:
                     if os.path.exists(img_path):
                         os.remove(img_path)
-                # 反馈结果
-                if success:
-                    # 映射成果类型到对应路由
-                    type_route_mapping = {
-                        '期刊论文': '/achievement/journal_paper',
-                        '会议论文': '/achievement/conference_paper',
-                        '教材': '/achievement/textbook',
-                        '专著': '/achievement/monograph',
-                        '发明专利': '/achievement/patent',
-                        '实用新型专利': '/achievement/patent',
-                        '软著': '/achievement/software_copyright',
-                        '教学成果获奖': '/achievement/teaching_achievement_award',
-                        '教学竞赛获奖': '/achievement/teaching_competition_award',
-                        '指导学生获奖': '/achievement/student_guidance_award',
-                        '教研教改和课程建设项目': '/achievement/teaching_project'
-                    }
-                    target_route = type_route_mapping.get(type_name, '/')
 
-                    # 显示 AI 分析详细信息
-                    ai_feedback = ""
-                    if zhipu_configured and ai_info:
-
-                        # 生成全量字段展示
-                        field_html = ""
-
-                        # 根据成果类型筛选展示字段
-                        type_fields = {
-                            '期刊论文': [
-                                ('论文名称', 'title'),
-                                ('作者', 'authors'),
-                                ('通讯作者', 'corresponding_authors'),
-                                ('期刊名称', 'journal_name'),
-                                ('收录情况', 'inclusion_status'),
-                                ('年', 'year'),
-                                ('卷', 'volume'),
-                                ('期', 'issue'),
-                                ('起止页码', 'page_range'),
-                                ('DOI', 'doi'),
-                                ('发表年份', 'publish_year'),
-                                ('发表日期', 'publish_date'),
-                            ],
-                            '会议论文': [
-                                ('论文名称', 'title'),
-                                ('作者', 'authors'),
-                                ('通讯作者', 'corresponding_authors'),
-                                ('会议名称', 'conference_name'),
-                                ('会议时间', 'conference_time'),
-                                ('会议地点', 'conference_place'),
-                                ('起止页码', 'page_range'),
-                                ('DOI', 'doi'),
-                                ('发表年份', 'publish_year'),
-                            ],
-                            '教材': [
-                                ('教材名称', 'title'),
-                                ('教材系列', 'textbook_series'),
-                                ('主编', 'chief_editor'),
-                                ('副主编', 'associate_editors'),
-                                ('编委', 'editorial_board'),
-                                ('出版社', 'publisher'),
-                                ('ISBN', 'isbn'),
-                                ('CIP核字号', 'cip_number'),
-                                ('出版年份', 'publication_year'),
-                                ('出版月份', 'publication_month'),
-                                ('版次', 'edition'),
-                                ('字数', 'word_count'),
-                                ('定价', 'price'),
-                                ('教材级别', 'textbook_level'),
-                                ('教材类型', 'textbook_type'),
-                                ('适用专业', 'applicable_majors'),
-                                ('备注', 'remarks'),
-                            ],
-                            '专利': [
-                                ('专利名称', 'title'),
-                                ('专利类型', 'patent_type'),
-                                ('专利号', 'patent_number'),
-                                ('申请日期', 'apply_date'),
-                                ('授权日期', 'grant_date'),
-                                ('状态', 'status'),
-                            ],
-                            '软著': [
-                                ('软件名称', 'title'),
-                                ('著作权人', 'copyright_owner'),
-                                ('开发完成日期', 'completion_date'),
-                                ('首次发表日期', 'first_publication_date'),
-                                ('权利取得方式', 'right_acquisition_method'),
-                                ('权利范围', 'right_scope'),
-                                ('登记号', 'copyright_number'),
-                                ('证书号', 'certificate_number'),
-                                ('登记日期', 'register_date'),
-                            ],
-                            '获奖类': [
-                                ('获奖名称', 'title'),
-                                ('获奖等级', 'award_level'),
-                                ('获奖等次', 'award_rank'),
-                                ('获奖日期', 'award_date'),
-                                ('主办方/竞赛名称', 'competition_name'),
-                                ('获奖学生', 'student_name'),
-                            ]
-                        }
-                        # 匹配当前成果类型的展示字段
-                        current_fields = []
-                        if ai_info['type_name'] in ['发明专利', '实用新型专利']:
-                            current_fields = type_fields['专利']
-                        elif '获奖' in ai_info['type_name']:
-                            current_fields = type_fields['获奖类']
-                        else:
-                            current_fields = type_fields.get(ai_info['type_name'], [])
-
-                        # 生成字段展示 HTML
-                        for label, key in current_fields:
-                            value = ai_info.get(key, '未识别')
-                            if value:
-                                field_html += f"<p><strong>{label}：</strong>{value}</p>"
-
-                        ai_feedback = f'''
-                                    <div class="alert alert-info">
-                                        <h4>AI 智能提取的全量字段（置信度：{ai_info.get('confidence', 0):.2f}）</h4>
-                                        {field_html if field_html else "<p>未提取到详细字段</p>"}
-                                    </div>
-                                    '''
-                    content = f'''
-                                <div class="alert alert-success">
-                                    <h4>操作成功！</h4>
-                                    <p>{msg}</p>
-                                </div>
-                                {ai_feedback}
-                                <a href="{target_route}" class="btn">查看成果列表</a>
-                                <a href="/achievement/ocr_import" class="btn">继续识别</a>
-                                '''
-                else:
-                    # 确保 msg 变量一定存在
-                    error_message = locals().get('msg', '处理过程中发生未知错误，请查看日志获取详细信息')
-                    content = f'''
-                                <div class="alert alert-danger">
-                                    <h4>操作失败</h4>
-                                    <p>{error_message}</p>
-                                </div>
-                                <div class="alert alert-info">
-                                    <h4>OCR识别结果（仅展示，不存储）</h4>
-                                    <pre style="margin:10px 0; padding:10px; background:#f5f7fa; border-radius:4px; max-height:400px; overflow:auto;">{ocr_text if ocr_text else '无识别内容'}</pre>
-                                    {f"<p>识别成果类型：<strong>{achievement_info.get('type_name', '未知')}</strong>（置信度：{achievement_info.get('confidence', 0)}）</p>" if achievement_info else ""}
-                                    {f"<p>识别标题：<strong>{achievement_info.get('title', '未识别')}</strong></p>" if achievement_info else ""}
-                                </div>
-                                <a href="/achievement/ocr_import" class="btn">重新识别</a>
-                                <a href="/" class="btn">返回首页</a>
-
-                                '''
-
-                return render_base_layout('OCR智能导入', content, current_user)
-    # GET请求：显示上传表单（更新提示文本）
-    ai_tip = ""
-    if not zhipu_configured:
-        ai_tip = '''
-        <div class="alert alert-warning">
-            未配置智谱AI API Key，将使用基础OCR识别（无AI智能分析）<br>
-            配置地址：<a href="/user/api_config">个人设置 > 大模型API配置</a>
+    # 错误情况处理
+    error_message = locals().get('msg', '处理过程中发生未知错误')
+    content = f'''
+        <div class="alert alert-danger">
+            <h4>操作失败</h4>
+            <p>{error_message}</p>
         </div>
-        '''
+        <a href="/achievement/ocr_import" class="btn">重新识别</a>
+        <a href="/" class="btn">返回首页</a>
+    '''
+    return render_base_layout('OCR 智能导入', content, current_user)
 
-    form_html = f'''
-        <h2>OCR智能导入成果（支持图片/PDF）</h2>
-        {ai_tip}
-        <form method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label>上传成果图片/PDF <span style="color:red;">*</span></label>
-                <input type="file" name="image_file" accept="image/*,.pdf" required>
-                <!-- 新增：文件大小提示 -->
-                <p style="margin-top:5px; color:#666;">
-                    支持格式：JPG/PNG/GIF/PDF，PDF文件会自动转换为图片逐页识别<br>
-                    <strong>文件大小限制：100MB</strong>，过大的PDF建议先拆分后上传
-                </p>
+
+@app.route('/achievement/ocr_import/confirm', methods=['POST'])
+def ocr_import_confirm():
+    """确认导入 OCR 识别结果"""
+    current_user = get_current_user()
+    if not current_user:
+        flash('请先登录！', 'danger')
+        return redirect(url_for('login'))
+
+    try:
+        # 获取表单数据
+        ocr_text = request.form.get('raw_text', '').strip()
+        type_name = request.form.get('type_name', '').strip()
+        title = request.form.get('title', '').strip()
+        ai_data_str = request.form.get('ai_data', '{}')
+
+        if not ocr_text or not type_name or not title:
+            flash('成果类型、名称和原始文本不能为空！', 'danger')
+            return redirect('/achievement/ocr_import')
+
+        # ========== 新增：查重校验 ==========
+        duplicate_check = check_achievement_duplicate(title, type_name, current_user.id)
+        if duplicate_check['exists']:
+            flash(f'❌ 检测到重复成果：《{title}》已存在于数据库中（{duplicate_check["type_name"]}），无法重复导入！', 'danger')
+            return redirect('/achievement/ocr_import')
+        # ===================================
+
+        # 解析 AI 数据
+        try:
+            ai_data = json.loads(ai_data_str) if ai_data_str else {}
+        except:
+            ai_data = {}
+
+        # 构建成果信息
+        achievement_info = {
+            'type_name': type_name,
+            'title': title,
+            'raw_text': ocr_text,
+            'ai_data': ai_data,
+            'extra_fields': {}
+        }
+
+        # 从详细字段中提取信息
+        for key, value in request.form.items():
+            if key.startswith('detail_') and value.strip():
+                field_name = key.replace('detail_', '')
+                achievement_info['extra_fields'][field_name] = value.strip()
+
+            # 同时从原始文本中提取未识别的字段（作为补充）
+        achievement_info['extra_fields']['raw_text_backup'] = ocr_text
+
+        # 创建成果记录
+        success, msg, result_type_name, achievement_id = create_achievement_from_ocr(achievement_info, current_user)
+
+        if success:
+            # 映射成果类型到对应路由
+            type_route_mapping = {
+                '期刊论文': '/achievement/journal_paper',
+                '会议论文': '/achievement/conference_paper',
+                '教材': '/achievement/textbook',
+                '专著': '/achievement/monograph',
+                '发明专利': '/achievement/patent',
+                '实用新型专利': '/achievement/patent',
+                '软著': '/achievement/software_copyright',
+                '教学成果获奖': '/achievement/teaching_achievement_award',
+                '教学竞赛获奖': '/achievement/teaching_competition_award',
+                '指导学生获奖': '/achievement/student_guidance_award',
+                '教研教改和课程建设项目': '/achievement/teaching_project'
+            }
+            target_route = type_route_mapping.get(result_type_name, '/')
+
+            flash(f'✅ {msg}', 'success')
+
+            # 显示成功页面
+            content = f'''
+            <div class="alert alert-success">
+                <h4>✅ 导入成功！</h4>
+                <p>成果类型：<strong>{result_type_name}</strong></p>
+                <p>成果名称：<strong>{title}</strong></p>
+                <p>{msg}</p>
             </div>
-            <button type="submit" class="btn" style="background:#27ae60;">开始识别并导入</button>
-            <a href="/" class="btn" style="background:#95a5a6; margin-left:10px;">取消</a>
-        </form>
-        '''
-    return render_base_layout('OCR智能导入', form_html, current_user)
+            <div style="margin-top:20px;">
+                <a href="{target_route}" class="btn">📋 查看成果列表</a>
+                <a href="/achievement/ocr_import" class="btn" style="background:#27ae60; margin-left:10px;">📷 继续识别</a>
+                <a href="/" class="btn" style="background:#3498db; margin-left:10px;">🏠 返回首页</a>
+            </div>
+            '''
+            return render_base_layout('OCR 导入成功', content, current_user)
+        else:
+            flash(f'❌ {msg}', 'danger')
+            return redirect('/achievement/ocr_import')
+
+    except Exception as e:
+        logger.error(f"确认导入 OCR 结果失败：{str(e)}")
+        flash(f'导入失败：{str(e)}', 'danger')
+        return redirect('/achievement/ocr_import')
+
+
+@app.route('/achievement/check_duplicate', methods=['POST'])
+def check_duplicate_api():
+    """前端 AJAX 调用查重接口"""
+    current_user = get_current_user()
+    if not current_user:
+        return json.dumps({'exists': False, 'error': '未登录'})
+
+    try:
+        data = request.get_json()
+        title = data.get('title', '').strip()
+        type_name = data.get('type_name', '').strip()
+
+        if not title or not type_name:
+            return json.dumps({'exists': False, 'error': '参数错误'})
+
+        duplicate_check = check_achievement_duplicate(title, type_name, current_user.id)
+        return json.dumps(duplicate_check)
+
+    except Exception as e:
+        logger.error(f"查重接口调用失败：{str(e)}")
+        return json.dumps({'exists': False, 'error': str(e)})
 
 
 @app.route('/achievement/voice_export', methods=['GET', 'POST'])
@@ -7180,113 +7748,282 @@ def team_voice_export():
     managed_teams = Team.query.filter_by(leader_id=current_user.id).all()
     if not managed_teams:
         content = '''
-        <div class="alert alert-warning">
-            您尚未管理任何团队！
-        </div>
-        <a href="/team/list" class="btn">创建团队</a>
-        '''
+            <div class="alert alert-warning">
+                您尚未管理任何团队！
+            </div>
+            <a href="/team/list" class="btn">创建团队</a>
+            '''
         return render_base_layout('团队语音导出成果', content, current_user)
-    current_team = managed_teams[0]
-    team_id_str = str(current_team.id)
 
-    if request.method == 'POST':
-        try:
-            if 'audio_blob' in request.files:
-                audio_data = request.files['audio_blob'].read()
-                voice_text, err = audio_to_text(audio_data, current_user)
-                if err:
-                    return json.dumps({'status': 'error', 'msg': f'语音识别失败：{err}'})
+    # GET 请求：显示团队选择页面
+    if request.method == 'GET':
+        team_options = ''.join([
+            f'<option value="{team.id}">{team.name}</option>'
+            for team in managed_teams
+        ])
 
-                return json.dumps({
-                    'status': 'success',
-                    'voice_text': voice_text,
-                    'export_url': '',
-                    'msg': '语音识别完成，可手动修改后导出'
-                })
+        form_html = f'''
+    <h2>团队语音导出成果</h2>
+    <div class="alert alert-info">
+        支持语音指令示例：<br>
+        - 导出张三老师的 2024 年期刊论文<br>
+        - 导出李四老师的专利<br>
+        - 导出所有成员的教学竞赛获奖<br>
+        - 导出王五老师的近三年教研教改和课程建设项目
+    </div>
 
-            elif 'voice_text' in request.form:
-                voice_text = request.form.get('voice_text', '').strip()
-                if not voice_text:
-                    return json.dumps({'status': 'error', 'msg': '请输入导出指令'})
+    <!-- 第一步：选择团队 -->
+    <div style="margin:20px 0; padding:20px; border:1px solid #eee; border-radius:8px;">
+        <h4>步骤 1：选择要导出哪个团队的成果</h4>
+        <div class="form-group">
+            <label>选择团队</label>
+            <select id="teamSelect" onchange="showVoiceInput()" style="width:100%; padding:10px; font-size:14px;">
+                <option value="">请选择团队...</option>
+                {team_options}
+            </select>
+        </div>
+    </div>
 
-                cmd = parse_voice_command(voice_text)
+    <!-- 第二步：语音输入（选择团队后显示） -->
+    <div id="voiceInputArea" style="display:none; margin:20px 0; padding:20px; border:1px solid #eee; border-radius:8px;">
+        <h4>步骤 2：语音或文字输入导出指令</h4>
+        <button id="recordBtn" class="btn" style="background:#27ae60;">开始录音</button>
+        <button id="stopBtn" class="btn" style="background:#e74c3c; display:none;">停止录音</button>
+        <div id="recordStatus" style="margin-top:10px; color:#666;"></div>
 
-                export_url = ''
-                export_msg = ''
-                error_msg = ''
+        <div id="resultArea" style="margin-top:20px; display:none;">
+            <div class="alert alert-info">
+                <h5>语音识别结果（可手动修改）：</h5>
+                <textarea id="voiceTextInput" style="width:100%; height:100px; margin:10px 0; padding:10px;" placeholder="请输入导出指令..."></textarea>
+                <button id="submitTextBtn" class="btn">确认导出</button>
+            </div>
+            <div id="exportArea"></div>
+        </div>
+    </div>
 
-                target_teacher = None
-                if cmd.get('teacher_name'):
-                    teacher_name = cmd['teacher_name']
-                    target_teacher = User.query.filter(
-                        or_(
-                            User.username.like(f'%{teacher_name}%'),
-                            User.employee_id.like(f'%{teacher_name}%')
-                        ),
-                        User.id.in_([ut.user_id for ut in UserTeam.query.filter_by(team_id=current_team.id).all()])
-                    ).first()
+    <script>
+        let recorder = null;
+        let audioBlob = null;
+        let selectedTeamId = null;
+        let selectedTeamName = '';
 
-                    if not target_teacher:
-                        export_msg = f'未找到团队成员：{teacher_name}'
-                        return json.dumps({
-                            'status': 'warning',
-                            'voice_text': voice_text,
-                            'export_url': '',
-                            'msg': export_msg
-                        })
+        function showVoiceInput() {{
+            const teamSelect = document.getElementById('teamSelect');
+            selectedTeamId = teamSelect.value;
+            selectedTeamName = teamSelect.options[teamSelect.selectedIndex].text;
 
-                type_mapping = {
-                    '期刊论文': (JournalPaper, 'journal_paper'),
-                    '会议论文': (ConferencePaper, 'conference_paper'),
-                    '教材': (Textbook, 'textbook'),
-                    '专著': (Monograph, 'monograph'),
-                    '专利': (Patent, 'patent'),
-                    '软著': (SoftwareCopyright, 'software_copyright'),
-                    '教学成果获奖': (TeachingAchievementAward, 'teaching_achievement_award'),
-                    '教学竞赛获奖': (TeachingCompetitionAward, 'teaching_competition_award'),
-                    '指导学生获奖': (StudentGuidanceAward, 'student_guidance_award'),
-                    '教研项目': (TeachingProject, 'teaching_project')
-                }
+            if (selectedTeamId) {{
+                document.getElementById('voiceInputArea').style.display = 'block';
+            }} else {{
+                document.getElementById('voiceInputArea').style.display = 'none';
+            }}
+        }}
 
-                if cmd['action'] == 'export' and cmd['type_name']:
-                    if cmd['type_name'] not in type_mapping:
-                        export_msg = f'暂不支持导出{cmd["type_name"]}类型成果'
-                    else:
-                        model, type_key = type_mapping[cmd['type_name']]
-                        export_url = f"/team/export_specified?team_id={current_team.id}"
-                        export_url += f"&type={type_key}"
+        document.getElementById('recordBtn').addEventListener('click', async () => {{
+            try {{
+                const stream = await navigator.mediaDevices.getUserMedia({{ audio: true }});
+                recorder = new MediaRecorder(stream);
+                const chunks = [];
 
-                        if target_teacher:
-                            export_url += f"&teacher_id={target_teacher.id}"
-                            teacher_info = f"{target_teacher.username}（{target_teacher.employee_id}）"
-                        else:
-                            teacher_info = "所有成员"
+                recorder.ondataavailable = (e) => chunks.push(e.data);
 
-                        if cmd['start_date']:
-                            export_url += f"&start_date={cmd['start_date']}"
-                        if cmd['end_date']:
-                            export_url += f"&end_date={cmd['end_date']}"
+                recorder.onstop = async () => {{
+                    audioBlob = new Blob(chunks, {{ type: 'audio/webm' }});
+                    document.getElementById('recordStatus').textContent = '录音完成，正在识别...';
 
-                        time_info = ""
-                        if cmd['start_date'] and cmd['end_date']:
-                            time_info = f"{cmd['start_date'][:4]}-{cmd['end_date'][:4]}年"
-                        elif cmd['start_date']:
-                            time_info = f"{cmd['start_date'][:4]}年"
+                    const formData = new FormData();
+                    formData.append('audio_blob', audioBlob, 'record.webm');
 
-                        export_msg = f'已识别指令：导出{time_info}{teacher_info}的{cmd["type_name"]}（仅公开给{current_team.name}的成果）'
+                    const response = await fetch('/team/voice_export', {{
+                        method: 'POST',
+                        body: formData
+                    }});
 
+                    const result = await response.json();
+                    document.getElementById('recordStatus').textContent = '';
+
+                    document.getElementById('resultArea').style.display = 'block';
+                    if (result.status === 'success') {{
+                        document.getElementById('voiceTextInput').value = result.voice_text;
+                        document.getElementById('exportArea').innerHTML =
+                            `<div class="alert alert-success">${{result.msg}}</div>`;
+                    }} else {{
+                        document.getElementById('exportArea').innerHTML =
+                            `<div class="alert alert-danger">${{result.msg}}</div>`;
+                    }}
+
+                    stream.getTracks().forEach(track => track.stop());
+                }};
+
+                recorder.start();
+                document.getElementById('recordBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+                document.getElementById('recordStatus').textContent = '正在录音...（点击停止按钮结束）';
+
+            }} catch (err) {{
+                document.getElementById('recordStatus').textContent = `录音权限获取失败：${{err.message}}`;
+            }}
+        }});
+
+        document.getElementById('stopBtn').addEventListener('click', () => {{
+            if (recorder && recorder.state === 'recording') {{
+                recorder.stop();
+                document.getElementById('recordBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+            }}
+        }});
+
+        document.getElementById('submitTextBtn').addEventListener('click', async () => {{
+            const voiceText = document.getElementById('voiceTextInput').value.trim();
+            if (!voiceText) {{
+                alert('请输入导出指令');
+                return;
+            }}
+
+            document.getElementById('exportArea').innerHTML = '<div class="alert alert-info">正在解析导出指令...</div>';
+
+            const formData = new FormData();
+            formData.append('voice_text', voiceText);
+            formData.append('team_id', selectedTeamId);
+
+            const response = await fetch('/team/voice_export', {{
+                method: 'POST',
+                body: formData
+            }});
+
+            const result = await response.json();
+            if (result.status === 'success') {{
+                let exportHtml = '';
+                if (result.export_url) {{
+                    exportHtml = `
+    <div class="alert alert-success">
+    <p>${{result.msg}}</p>
+    <a href="${{result.export_url}}" class="btn">点击导出成果</a>
+    </div>`;
+                }} else {{
+                    exportHtml = `<div class="alert alert-warning">${{result.msg}}</div>`;
+                }}
+                document.getElementById('exportArea').innerHTML = exportHtml;
+            }} else if (result.status === 'warning') {{
+                document.getElementById('exportArea').innerHTML =
+                    `<div class="alert alert-warning">${{result.msg}}</div>`;
+            }} else {{
+                document.getElementById('exportArea').innerHTML =
+                    `<div class="alert alert-danger">${{result.msg}}</div>`;
+            }}
+        }});
+    </script>
+    '''
+        return render_base_layout('团队语音导出成果', form_html, current_user)
+
+    # POST 请求：处理语音识别和指令解析
+    try:
+        if 'audio_blob' in request.files:
+            audio_data = request.files['audio_blob'].read()
+            voice_text, err = audio_to_text(audio_data, current_user)
+            if err:
+                return json.dumps({'status': 'error', 'msg': f'语音识别失败：{err}'})
+
+            return json.dumps({
+                'status': 'success',
+                'voice_text': voice_text,
+                'export_url': '',
+                'msg': '语音识别完成，可手动修改后导出'
+            })
+
+        elif 'voice_text' in request.form:
+            voice_text = request.form.get('voice_text', '').strip()
+            team_id = request.form.get('team_id', type=int)
+
+            if not team_id:
+                return json.dumps({'status': 'error', 'msg': '请先选择团队'})
+
+            # 验证团队权限
+            team = db.session.get(Team, team_id)
+            if not team or team.leader_id != current_user.id:
+                return json.dumps({'status': 'error', 'msg': '无权限导出该团队成果'})
+
+            if not voice_text:
+                return json.dumps({'status': 'error', 'msg': '请输入导出指令'})
+
+            cmd = parse_voice_command(voice_text)
+
+            export_url = ''
+            export_msg = ''
+            error_msg = ''
+
+            target_teacher = None
+            if cmd.get('teacher_name'):
+                teacher_name = cmd['teacher_name']
+                target_teacher = User.query.filter(
+                    or_(
+                        User.username.like(f'%{teacher_name}%'),
+                        User.employee_id.like(f'%{teacher_name}%')
+                    ),
+                    User.id.in_([ut.user_id for ut in UserTeam.query.filter_by(team_id=team_id).all()])
+                ).first()
+
+                if not target_teacher:
+                    export_msg = f'未找到团队成员：{teacher_name}'
+                    return json.dumps({
+                        'status': 'warning',
+                        'voice_text': voice_text,
+                        'export_url': '',
+                        'msg': export_msg
+                    })
+
+            type_mapping = {
+                '期刊论文': (JournalPaper, 'journal_paper'),
+                '会议论文': (ConferencePaper, 'conference_paper'),
+                '教材': (Textbook, 'textbook'),
+                '专著': (Monograph, 'monograph'),
+                '专利': (Patent, 'patent'),
+                '软著': (SoftwareCopyright, 'software_copyright'),
+                '教学成果获奖': (TeachingAchievementAward, 'teaching_achievement_award'),
+                '教学竞赛获奖': (TeachingCompetitionAward, 'teaching_competition_award'),
+                '指导学生获奖': (StudentGuidanceAward, 'student_guidance_award'),
+                '教研教改和课程建设项目': (TeachingProject, 'teaching_project')
+            }
+
+            if cmd['action'] == 'export' and cmd['type_name']:
+                if cmd['type_name'] not in type_mapping:
+                    export_msg = f'暂不支持导出{cmd["type_name"]}类型成果'
                 else:
-                    export_msg = f'未识别有效导出指令，示例：导出张三老师的2024年期刊论文'
+                    model, type_key = type_mapping[cmd['type_name']]
+                    export_url = f"/team/export_specified?team_id={team_id}"
+                    export_url += f"&type={type_key}"
 
-                return json.dumps({
-                    'status': 'success',
-                    'voice_text': voice_text,
-                    'export_url': export_url,
-                    'msg': export_msg
-                })
+                    if target_teacher:
+                        export_url += f"&teacher_id={target_teacher.id}"
+                        teacher_info = f"{target_teacher.username}（{target_teacher.employee_id}）"
+                    else:
+                        teacher_info = "所有成员"
 
-        except Exception as e:
-            return json.dumps({'status': 'error', 'msg': f'处理失败：{str(e)}'})
+                    if cmd['start_date']:
+                        export_url += f"&start_date={cmd['start_date']}"
+                    if cmd['end_date']:
+                        export_url += f"&end_date={cmd['end_date']}"
+
+                    time_info = ""
+                    if cmd['start_date'] and cmd['end_date']:
+                        time_info = f"{cmd['start_date'][:4]}-{cmd['end_date'][:4]}年"
+                    elif cmd['start_date']:
+                        time_info = f"{cmd['start_date'][:4]}年"
+
+                    export_msg = f'已识别指令：导出{time_info}{teacher_info}的{cmd["type_name"]}（仅公开给{team.name}的成果）'
+
+            else:
+                export_msg = f'未识别有效导出指令，示例：导出张三老师的 2024 年期刊论文'
+
+            return json.dumps({
+                'status': 'success',
+                'voice_text': voice_text,
+                'export_url': export_url,
+                'msg': export_msg
+            })
+
+    except Exception as e:
+        return json.dumps({'status': 'error', 'msg': f'处理失败：{str(e)}'})
 
     # 修复：修正JavaScript模板字符串语法，移除多余的$符号
     form_html = f'''
@@ -7296,7 +8033,7 @@ def team_voice_export():
     - 导出张三老师的2024年期刊论文<br>
     - 导出李四老师的专利<br>
     - 导出所有成员的教学竞赛获奖<br>
-    - 导出王五老师的近三年教研项目
+    - 导出王五老师的近三年教研教改和课程建设项目
 </div>
 
 <div style="margin:20px 0; padding:20px; border:1px solid #eee; border-radius:8px;">
@@ -7444,7 +8181,14 @@ def team_export_specified():
         'journal_paper': (JournalPaper, '期刊论文', [
             {'name': 'title', 'label': '论文名称'},
             {'name': 'authors', 'label': '论文作者'},
+            {'name': 'corresponding_authors', 'label': '通讯作者'},
             {'name': 'journal_name', 'label': '期刊名称'},
+            {'name': 'inclusion_status', 'label': '收录情况'},
+            {'name': 'year', 'label': '年'},
+            {'name': 'volume', 'label': '卷'},
+            {'name': 'issue', 'label': '期'},
+            {'name': 'page_range', 'label': '起止页码'},
+            {'name': 'doi', 'label': 'DOI'},
             {'name': 'publish_year', 'label': '发表年份'},
             {'name': 'publish_date', 'label': '发表日期'},
             {'name': 'attachment', 'label': '附件'}
@@ -7452,29 +8196,70 @@ def team_export_specified():
         'conference_paper': (ConferencePaper, '会议论文', [
             {'name': 'title', 'label': '论文名称'},
             {'name': 'authors', 'label': '论文作者'},
+            {'name': 'corresponding_authors', 'label': '通讯作者'},
             {'name': 'conference_name', 'label': '会议名称'},
+            {'name': 'conference_start_date', 'label': '会议开始日期'},
+            {'name': 'conference_end_date', 'label': '会议结束日期'},
+            {'name': 'conference_place', 'label': '会议地点'},
+            {'name': 'page_range', 'label': '起止页码'},
+            {'name': 'doi', 'label': 'DOI'},
             {'name': 'publish_year', 'label': '发表年份'},
             {'name': 'attachment', 'label': '附件'}
         ]),
         'textbook': (Textbook, '教材', [
             {'name': 'title', 'label': '教材名称'},
-            {'name': 'isbn', 'label': 'ISBN'},
+            {'name': 'textbook_series', 'label': '教材系列'},
+            {'name': 'chief_editor', 'label': '主编'},
+            {'name': 'associate_editors', 'label': '副主编'},
+            {'name': 'editorial_board', 'label': '编委'},
             {'name': 'publisher', 'label': '出版社'},
+            {'name': 'isbn', 'label': 'ISBN'},
+            {'name': 'cip_number', 'label': 'CIP 核字号'},
+            {'name': 'publication_year', 'label': '出版年份'},
+            {'name': 'publication_month', 'label': '出版月份'},
             {'name': 'publish_date', 'label': '出版日期'},
-            {'name': 'attachment', 'label': '附件'}
+            {'name': 'edition', 'label': '版次'},
+            {'name': 'word_count', 'label': '字数'},
+            {'name': 'price', 'label': '定价'},
+            {'name': 'textbook_level_id', 'label': '教材级别'},
+            {'name': 'textbook_type', 'label': '教材类型'},
+            {'name': 'applicable_majors', 'label': '适用专业'},
+            {'name': 'remarks', 'label': '备注'},
+            {'name': 'textbook_attachment', 'label': '附件'}
         ]),
         'monograph': (Monograph, '专著', [
             {'name': 'title', 'label': '专著名称'},
-            {'name': 'isbn', 'label': 'ISBN'},
+            {'name': 'textbook_series', 'label': '专著系列'},
+            {'name': 'chief_editor', 'label': '主编'},
+            {'name': 'associate_editors', 'label': '副主编'},
+            {'name': 'editorial_board', 'label': '编委'},
             {'name': 'publisher', 'label': '出版社'},
+            {'name': 'isbn', 'label': 'ISBN'},
+            {'name': 'cip_number', 'label': 'CIP 核字号'},
+            {'name': 'publication_year', 'label': '出版年份'},
+            {'name': 'publication_month', 'label': '出版月份'},
             {'name': 'publish_date', 'label': '出版日期'},
-            {'name': 'attachment', 'label': '附件'}
+            {'name': 'edition', 'label': '版次'},
+            {'name': 'word_count', 'label': '字数'},
+            {'name': 'price', 'label': '定价'},
+            {'name': 'monograph_type', 'label': '专著类型'},
+            {'name': 'applicable_majors', 'label': '适用专业'},
+            {'name': 'remarks', 'label': '备注'},
+            {'name': 'monograph_attachment', 'label': '附件'}
         ]),
         'patent': (Patent, '专利', [
             {'name': 'title', 'label': '专利名称'},
-            {'name': 'patent_type', 'label': '专利类型'},
+            {'name': 'patent_type_id', 'label': '专利类型'},
+            {'name': 'patentee', 'label': '专利权人'},
+            {'name': 'address', 'label': '地址'},
+            {'name': 'inventors', 'label': '发明人'},
+            {'name': 'patent_status_id', 'label': '专利状态'},
             {'name': 'patent_number', 'label': '专利号'},
-            {'name': 'apply_date', 'label': '申请日期'},
+            {'name': 'grant_announcement_number', 'label': '授权公告号'},
+            {'name': 'apply_date', 'label': '专利申请日'},
+            {'name': 'grant_announcement_date', 'label': '授权公告日'},
+            {'name': 'applicant_at_apply_date', 'label': '申请日时申请人'},
+            {'name': 'inventor_at_apply_date', 'label': '申请日时发明人'},
             {'name': 'attachment', 'label': '附件'}
         ]),
         'software_copyright': (SoftwareCopyright, '软著', [
@@ -7490,28 +8275,59 @@ def team_export_specified():
             {'name': 'attachment', 'label': '附件'}
         ]),
         'teaching_achievement_award': (TeachingAchievementAward, '教学成果获奖', [
-            {'name': 'title', 'label': '获奖名称'},
-            {'name': 'award_level', 'label': '获奖等级'},
+            {'name': 'title', 'label': '成果名称'},
+            {'name': 'achievement_type_id', 'label': '教学成果奖类型'},
+            {'name': 'achievement_level_id', 'label': '成果等级'},
+            {'name': 'main_contributors', 'label': '主要完成人'},
+            {'name': 'completing_units', 'label': '成果完成单位'},
+            {'name': 'award_year', 'label': '获奖年度'},
+            {'name': 'award_rank_id', 'label': '获奖等级'},
+            {'name': 'certificate_number', 'label': '证书编号'},
+            {'name': 'awarding_unit', 'label': '颁奖单位'},
             {'name': 'award_date', 'label': '获奖日期'},
             {'name': 'attachment', 'label': '附件'}
         ]),
         'teaching_competition_award': (TeachingCompetitionAward, '教学竞赛获奖', [
             {'name': 'title', 'label': '竞赛名称'},
-            {'name': 'award_level', 'label': '获奖等级'},
+            {'name': 'award_year', 'label': '获奖年度'},
+            {'name': 'competition_level_id', 'label': '竞赛等级'},
+            {'name': 'award_rank_id', 'label': '获奖等级'},
+            {'name': 'winners', 'label': '获奖人'},
+            {'name': 'winner_unit', 'label': '获奖人所在单位'},
+            {'name': 'competition_name', 'label': '竞赛主办方'},
             {'name': 'award_date', 'label': '获奖日期'},
+            {'name': 'certificate_number', 'label': '证书编号'},
             {'name': 'attachment', 'label': '附件'}
         ]),
         'student_guidance_award': (StudentGuidanceAward, '指导学生获奖', [
             {'name': 'title', 'label': '获奖名称'},
+            {'name': 'award_year', 'label': '获奖年度'},
+            {'name': 'competition_name', 'label': '竞赛名称'},
+            {'name': 'competition_level_id', 'label': '竞赛等级'},
+            {'name': 'award_rank_id', 'label': '获奖等级'},
             {'name': 'student_name', 'label': '获奖学生'},
+            {'name': 'project_name', 'label': '获奖项目名称'},
+            {'name': 'teacher_name', 'label': '指导教师'},
+            {'name': 'student_unit', 'label': '获奖学生所在单位'},
+            {'name': 'organizer', 'label': '竞赛主办方'},
+            {'name': 'certificate_number', 'label': '证书编号'},
             {'name': 'award_date', 'label': '获奖日期'},
             {'name': 'attachment', 'label': '附件'}
         ]),
-        'teaching_project': (TeachingProject, '教研项目', [
+        'teaching_project': (TeachingProject, '教研教改和课程建设项目', [
             {'name': 'title', 'label': '项目名称'},
-            {'name': 'project_type', 'label': '项目类型'},
+            {'name': 'project_code', 'label': '项目编号'},
+            {'name': 'project_type_id', 'label': '项目类型'},
+            {'name': 'project_leader', 'label': '项目负责人'},
+            {'name': 'project_members', 'label': '项目参与人'},
+            {'name': 'approval_department', 'label': '批准部门'},
+            {'name': 'approval_date', 'label': '立项时间'},
+            {'name': 'project_level_id', 'label': '项目级别'},
+            {'name': 'project_category_id', 'label': '项目类别'},
+            {'name': 'funding', 'label': '经费'},
             {'name': 'start_date', 'label': '开始时间'},
             {'name': 'end_date', 'label': '结束时间'},
+            {'name': 'project_status_id', 'label': '项目状态'},
             {'name': 'attachment', 'label': '附件'}
         ])
     }
@@ -7589,6 +8405,17 @@ def team_export_specified():
                 value = value.strftime('%Y-%m-%d') if value else ''
             elif field_name == 'attachment' and value:
                 value = os.path.basename(value) if value else ''
+            # 处理外键对象（如专利类型、项目类型等）
+            elif hasattr(value, '__class__') and hasattr(value, 'type_name'):
+                value = value.type_name if value else ''
+            elif hasattr(value, '__class__') and hasattr(value, 'level_name'):
+                value = value.level_name if value else ''
+            elif hasattr(value, '__class__') and hasattr(value, 'status_name'):
+                value = value.status_name if value else ''
+            elif hasattr(value, '__class__') and hasattr(value, 'rank_name'):
+                value = value.rank_name if value else ''
+            elif hasattr(value, '__class__') and hasattr(value, 'category_name'):
+                value = value.category_name if value else ''
             row.append(value)
         ws.append(row)
 
@@ -7959,6 +8786,990 @@ def admin_dict_manage(dict_type):
     return render_base_layout(f'{dict_name}管理', dict_html, current_user)
 
 
+def check_achievement_duplicate(title, type_name, user_id):
+    """
+    检查成果是否重复（根据成果名称和类型查询数据库）
+    :param title: 成果名称
+    :param type_name: 成果类型
+    :param user_id: 用户 ID
+    :return: {'exists': True/False, 'type_name': '实际类型名称', 'message': '提示信息'}
+    """
+    if not title:
+        return {'exists': False, 'type_name': '', 'message': ''}
+
+    # 成果类型与数据库表的映射关系
+    type_model_mapping = {
+        '期刊论文': JournalPaper,
+        '会议论文': ConferencePaper,
+        '教材': Textbook,
+        '专著': Monograph,
+        '发明专利': Patent,
+        '实用新型专利': Patent,
+        '外观设计专利': Patent,
+        '软著': SoftwareCopyright,
+        '教学成果获奖': TeachingAchievementAward,
+        '教学竞赛获奖': TeachingCompetitionAward,
+        '指导学生获奖': StudentGuidanceAward,
+        '教研教改和课程建设项目': TeachingProject
+    }
+
+    # 如果类型不在映射中，返回不重复
+    if type_name not in type_model_mapping:
+        return {'exists': False, 'type_name': '', 'message': ''}
+
+    model = type_model_mapping[type_name]
+
+    try:
+        existing = model.query.filter_by(title=title, user_id=user_id).first()
+
+        if existing:
+            # 找到重复成果，获取其所属用户信息
+            owner = db.session.get(User, existing.user_id)
+            owner_name = owner.username if owner else '未知用户'
+            return {
+                'exists': True,
+                'type_name': type_name,
+                'message': f'该成果已存在于数据库中（所有者：{owner_name}）'
+            }
+        else:
+            return {'exists': False, 'type_name': '', 'message': ''}
+
+    except Exception as e:
+        logger.error(f"查重校验失败：{str(e)}")
+        # 出错时默认不重复，允许导入
+        return {'exists': False, 'type_name': '', 'message': ''}
+
+
+@app.route('/achievement/batch_import', methods=['GET', 'POST'])
+def batch_import():
+    """批量导入成果页面"""
+    current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('login'))
+
+    if request.method != 'POST':
+        # 显示批量导入选择页面
+        achievement_types = [
+            ('journal_paper', '期刊论文'),
+            ('conference_paper', '会议论文'),
+            ('textbook', '教材'),
+            ('monograph', '专著'),
+            ('teaching_project', '教研教改和课程建设项目'),
+            ('patent', '专利'),
+            ('software_copyright', '软件著作'),
+            ('teaching_achievement_award', '教学成果获奖'),
+            ('teaching_competition_award', '教学竞赛获奖'),
+            ('student_guidance_award', '指导学生获奖')
+        ]
+
+        content = f'''
+        <h2>批量导入成果</h2>
+        <div class="alert alert-info">
+            <strong>使用说明：</strong><br>
+            1. 选择要导入的成果类型<br>
+            2. 下载对应的 Excel 模板<br>
+            3. 按照模板格式填写数据<br>
+            4. 上传填好的 Excel 文件<br>
+            5. 系统会解析并显示数据，经您确认后导入数据库<br>
+            6. 系统会自动检测重复成果，避免重复导入
+        </div>
+
+        <form method="GET" action="/achievement/batch_import/select_type" style="margin-top:20px;">
+            <div class="form-group">
+                <label>选择成果类型 <span style="color:red;">*</span></label>
+                <select name="type" required style="width:300px;">
+                    <option value="">请选择</option>
+                    {''.join([f'<option value="{t[0]}">{t[1]}</option>' for t in achievement_types])}
+                </select>
+            </div>
+            <button type="submit" class="btn">下一步：下载模板</button>
+        </form>
+        '''
+
+        return render_base_layout('批量导入成果', content, current_user)
+
+    # POST 请求处理（确认导入）
+    return handle_batch_import_confirm(current_user)
+
+
+@app.route('/achievement/batch_import/select_type')
+def batch_import_select_type():
+    """选择成果类型后跳转"""
+    current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('login'))
+
+    achievement_type = request.args.get('type')
+    if not achievement_type:
+        flash('请选择成果类型！', 'danger')
+        return redirect(url_for('batch_import'))
+
+    # 重定向到带类型的批量导入页面
+    return redirect(f'/achievement/batch_import/{achievement_type}')
+
+
+@app.route('/achievement/batch_import/<achievement_type>', methods=['GET', 'POST'])
+def batch_import_by_type(achievement_type):
+    """按类型批量导入成果"""
+    current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('login'))
+
+    # 验证成果类型
+    type_mapping = {
+        'journal_paper': ('JournalPaper', '期刊论文'),
+        'conference_paper': ('ConferencePaper', '会议论文'),
+        'textbook': ('Textbook', '教材'),
+        'monograph': ('Monograph', '专著'),
+        'teaching_project': ('TeachingProject', '教研教改和课程建设项目'),
+        'patent': ('Patent', '专利'),
+        'software_copyright': ('SoftwareCopyright', '软件著作'),
+        'teaching_achievement_award': ('TeachingAchievementAward', '教学成果获奖'),
+        'teaching_competition_award': ('TeachingCompetitionAward', '教学竞赛获奖'),
+        'student_guidance_award': ('StudentGuidanceAward', '指导学生获奖')
+    }
+
+    if achievement_type not in type_mapping:
+        flash('无效的成果类型！', 'danger')
+        return redirect(url_for('batch_import'))
+
+    model_name, type_name = type_mapping[achievement_type]
+
+    # GET 请求：显示上传表单和模板下载
+    if request.method != 'POST':
+        content = f'''
+        <h2>批量导入{type_name}</h2>
+        <div class="alert alert-info">
+            <strong>操作步骤：</strong><br>
+            1. 点击下方按钮下载 Excel 模板<br>
+            2. 按照模板格式填写数据<br>
+            3. 上传填好的 Excel 文件<br>
+            4. 系统解析后请仔细核对数据<br>
+            5. 确认无误后点击导入数据库
+        </div>
+
+        <div style="margin:20px 0;">
+            <a href="/achievement/batch_import/template/{achievement_type}" class="btn" style="background:#27ae60; margin-right:10px;">
+                📥 下载{type_name}导入模板
+            </a>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" style="margin-top:20px;">
+            <div class="form-group">
+                <label>上传 Excel 文件 <span style="color:red;">*</span></label>
+                <input type="file" name="excel_file" accept=".xlsx,.xls" required>
+                <p style="margin-top:5px; color:#666;">
+                    支持格式：.xlsx 或 .xls 格式
+                </p>
+            </div>
+            <button type="submit" class="btn">上传并解析</button>
+            <a href="/achievement/batch_import" class="btn" style="background-color:#95a5a6; margin-left:10px;">返回上一步</a>
+        </form>
+        '''
+
+        return render_base_layout(f'批量导入{type_name}', content, current_user)
+
+    # POST 请求：处理 Excel 上传和解析
+    return handle_excel_upload(achievement_type, model_name, type_name, current_user)
+
+
+@app.route('/achievement/batch_import/template/<achievement_type>')
+def download_batch_import_template(achievement_type):
+    """下载批量导入 Excel 模板"""
+    type_mapping = {
+        'journal_paper': ('JournalPaper', '期刊论文'),
+        'conference_paper': ('ConferencePaper', '会议论文'),
+        'textbook': ('Textbook', '教材'),
+        'monograph': ('Monograph', '专著'),
+        'teaching_project': ('TeachingProject', '教研教改和课程建设项目'),
+        'patent': ('Patent', '专利'),
+        'software_copyright': ('SoftwareCopyright', '软件著作'),
+        'teaching_achievement_award': ('TeachingAchievementAward', '教学成果获奖'),
+        'teaching_competition_award': ('TeachingCompetitionAward', '教学竞赛获奖'),
+        'student_guidance_award': ('StudentGuidanceAward', '指导学生获奖')
+    }
+
+    if achievement_type not in type_mapping:
+        flash('无效的成果类型！', 'danger')
+        return redirect(url_for('batch_import'))
+
+    model_name, type_name = type_mapping[achievement_type]
+
+    # 获取字段配置
+    fields_config = get_batch_import_fields(achievement_type)
+
+    # 创建 Excel 工作簿
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = type_name
+
+    # 写入表头
+    headers = ['序号'] + [field['label'] for field in fields_config]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+        ws.column_dimensions[chr(64 + col)].width = 20
+
+    # 写入示例数据（第二行）
+    sample_data = get_sample_data(achievement_type)
+    if sample_data:
+        for row_idx, sample_row in enumerate(sample_data, 2):
+            for col_idx, value in enumerate(sample_row, 2):
+                ws.cell(row=row_idx, column=col_idx, value=value)
+
+    # 添加说明工作表
+    ws_info = wb.create_sheet(title='填写说明')
+    ws_info.cell(row=1, column=1, value='填写说明')
+    ws_info.cell(row=1, column=1).font = openpyxl.styles.Font(bold=True, size=14)
+
+    instructions = [
+        '1. 请在下方工作表中填写数据',
+        '2. 带*号的字段为必填项',
+        '3. 日期格式：YYYY-MM-DD（如 2026-03-29）',
+        '4. 多个作者/发明人等用逗号分隔',
+        '5. 系统会自动检测重复成果',
+        '6. 第一次导入建议先填少量数据测试',
+        '',
+        '各字段详细说明：'
+    ]
+
+    for idx, field in enumerate(fields_config, 9):
+        required = '（必填）' if field.get('required', False) else ''
+        instructions.append(f'{idx - 8}. {field["label"]}{required}')
+
+    for row_idx, instruction in enumerate(instructions, 2):
+        ws_info.cell(row=row_idx, column=1, value=instruction)
+
+    ws_info.column_dimensions['A'].width = 50
+
+    # 保存到 BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f'{type_name}导入模板.xlsx'
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+def get_batch_import_fields(achievement_type):
+    """获取各成果类型的批量导入字段配置"""
+    fields_map = {
+        'journal_paper': [
+            {'name': 'title', 'label': '论文名称', 'required': True},
+            {'name': 'authors', 'label': '论文作者', 'required': True},
+            {'name': 'corresponding_authors', 'label': '通讯作者'},
+            {'name': 'journal_name', 'label': '期刊名称', 'required': True},
+            {'name': 'inclusion_status', 'label': '收录情况'},
+            {'name': 'year', 'label': '年'},
+            {'name': 'volume', 'label': '卷'},
+            {'name': 'issue', 'label': '期'},
+            {'name': 'page_range', 'label': '起止页码'},
+            {'name': 'doi', 'label': 'DOI'},
+            {'name': 'publish_year', 'label': '发表年份'},
+            {'name': 'publish_date', 'label': '发表日期'},
+        ],
+        'conference_paper': [
+            {'name': 'title', 'label': '论文名称', 'required': True},
+            {'name': 'authors', 'label': '论文作者', 'required': True},
+            {'name': 'corresponding_authors', 'label': '通讯作者'},
+            {'name': 'conference_name', 'label': '会议名称', 'required': True},
+            {'name': 'conference_time', 'label': '会议时间'},
+            {'name': 'conference_place', 'label': '会议地点'},
+            {'name': 'page_range', 'label': '起止页码'},
+            {'name': 'doi', 'label': 'DOI'},
+            {'name': 'publish_year', 'label': '发表年份'},
+        ],
+        'textbook': [
+            {'name': 'title', 'label': '教材名称', 'required': True},
+            {'name': 'textbook_series', 'label': '教材系列'},
+            {'name': 'chief_editor', 'label': '主编'},
+            {'name': 'associate_editors', 'label': '副主编'},
+            {'name': 'editorial_board', 'label': '编委'},
+            {'name': 'publisher', 'label': '出版社'},
+            {'name': 'isbn', 'label': 'ISBN'},
+            {'name': 'cip_number', 'label': 'CIP 核字号'},
+            {'name': 'publication_year', 'label': '出版年份'},
+            {'name': 'publication_month', 'label': '出版月份'},
+            {'name': 'edition', 'label': '版次'},
+            {'name': 'word_count', 'label': '字数'},
+            {'name': 'price', 'label': '定价'},
+            {'name': 'textbook_level', 'label': '教材级别'},
+            {'name': 'textbook_type', 'label': '教材类型'},
+            {'name': 'applicable_majors', 'label': '适用专业'},
+            {'name': 'remarks', 'label': '备注'},
+        ],
+        'monograph': [
+            {'name': 'title', 'label': '专著名称', 'required': True},
+            {'name': 'textbook_series', 'label': '专著系列'},
+            {'name': 'chief_editor', 'label': '主编'},
+            {'name': 'associate_editors', 'label': '副主编'},
+            {'name': 'editorial_board', 'label': '编委'},
+            {'name': 'publisher', 'label': '出版社'},
+            {'name': 'isbn', 'label': 'ISBN'},
+            {'name': 'cip_number', 'label': 'CIP 核字号'},
+            {'name': 'publication_year', 'label': '出版年份'},
+            {'name': 'publication_month', 'label': '出版月份'},
+            {'name': 'edition', 'label': '版次'},
+            {'name': 'word_count', 'label': '字数'},
+            {'name': 'price', 'label': '定价'},
+            {'name': 'monograph_type', 'label': '专著类型'},
+            {'name': 'applicable_majors', 'label': '适用专业'},
+            {'name': 'remarks', 'label': '备注'},
+        ],
+        'teaching_project': [
+            {'name': 'title', 'label': '项目名称', 'required': True},
+            {'name': 'project_code', 'label': '项目编号'},
+            {'name': 'project_leader', 'label': '项目负责人'},
+            {'name': 'project_members', 'label': '项目参与人'},
+            {'name': 'approval_department', 'label': '项目批准部门'},
+            {'name': 'approval_date', 'label': '项目立项时间'},
+            {'name': 'project_type', 'label': '项目类型'},
+            {'name': 'project_level', 'label': '项目级别'},
+            {'name': 'project_category', 'label': '项目类别'},
+            {'name': 'project_status', 'label': '项目状态'},
+            {'name': 'funding', 'label': '项目经费'},
+            {'name': 'start_date', 'label': '项目开始时间'},
+            {'name': 'end_date', 'label': '项目结束时间'},
+        ],
+        'patent': [
+            {'name': 'title', 'label': '专利名称', 'required': True},
+            {'name': 'patent_type', 'label': '专利类型'},
+            {'name': 'patentee', 'label': '专利权人'},
+            {'name': 'address', 'label': '地址'},
+            {'name': 'inventors', 'label': '发明人'},
+            {'name': 'patent_status', 'label': '专利状态'},
+            {'name': 'patent_number', 'label': '专利号'},
+            {'name': 'grant_announcement_number', 'label': '授权公告号'},
+            {'name': 'apply_date', 'label': '专利申请日'},
+            {'name': 'grant_announcement_date', 'label': '授权公告日'},
+        ],
+        'software_copyright': [
+            {'name': 'title', 'label': '软件名称', 'required': True},
+            {'name': 'copyright_owner', 'label': '著作权人'},
+            {'name': 'completion_date', 'label': '开发完成日期'},
+            {'name': 'first_publication_date', 'label': '首次发表日期'},
+            {'name': 'right_acquisition_method', 'label': '权利取得方式'},
+            {'name': 'right_scope', 'label': '权利范围'},
+            {'name': 'copyright_number', 'label': '登记号'},
+            {'name': 'certificate_number', 'label': '证书号'},
+            {'name': 'register_date', 'label': '登记日期'},
+        ],
+        'teaching_achievement_award': [
+            {'name': 'title', 'label': '成果名称', 'required': True},
+            {'name': 'achievement_type', 'label': '教学成果奖类型'},
+            {'name': 'achievement_level', 'label': '成果等级'},
+            {'name': 'main_contributors', 'label': '主要完成人'},
+            {'name': 'completing_units', 'label': '成果完成单位'},
+            {'name': 'award_year', 'label': '获奖年度'},
+            {'name': 'award_rank', 'label': '获奖等级'},
+            {'name': 'certificate_number', 'label': '证书编号'},
+            {'name': 'awarding_unit', 'label': '颁奖单位'},
+            {'name': 'award_date', 'label': '获奖日期'},
+        ],
+        'teaching_competition_award': [
+            {'name': 'title', 'label': '竞赛名称', 'required': True},
+            {'name': 'award_year', 'label': '获奖年度'},
+            {'name': 'competition_level', 'label': '竞赛等级'},
+            {'name': 'award_rank', 'label': '获奖等级'},
+            {'name': 'winners', 'label': '获奖人'},
+            {'name': 'winner_unit', 'label': '获奖人所在单位'},
+            {'name': 'competition_name', 'label': '竞赛主办方'},
+            {'name': 'award_date', 'label': '获奖日期'},
+            {'name': 'certificate_number', 'label': '证书编号'},
+        ],
+        'student_guidance_award': [
+            {'name': 'title', 'label': '获奖名称', 'required': True},
+            {'name': 'award_year', 'label': '获奖年度'},
+            {'name': 'competition_name', 'label': '竞赛名称'},
+            {'name': 'competition_level', 'label': '竞赛等级'},
+            {'name': 'award_rank', 'label': '获奖等级'},
+            {'name': 'student_name', 'label': '获奖学生'},
+            {'name': 'project_name', 'label': '获奖项目名称'},
+            {'name': 'teacher_name', 'label': '指导教师'},
+            {'name': 'student_unit', 'label': '获奖学生所在单位'},
+            {'name': 'organizer', 'label': '竞赛主办方'},
+            {'name': 'certificate_number', 'label': '证书编号'},
+            {'name': 'award_date', 'label': '获奖日期'},
+        ]
+    }
+
+    return fields_map.get(achievement_type, [])
+
+
+def get_sample_data(achievement_type):
+    """获取各成果类型的示例数据"""
+    samples = {
+        'journal_paper': [
+            ['基于深度学习的图像识别研究', '张三，李四，王五', '张三', '计算机学报', 'SCI,EI', '2026', '45', '3',
+             '100-110', '10.1234/journal.2026.001', '2026', '2026-03-01']
+        ],
+        'conference_paper': [
+            ['人工智能在教育中的应用', '赵六，钱七', '赵六', '全国教育技术大会', '2026.03.15-2026.03-17', '北京',
+             '50-60', '10.5678/conf.2026.002', '2026']
+        ],
+        'textbook': [
+            ['Python 程序设计教程', '信息技术系列教材', '张三', '李四', '王五，赵六', '清华大学出版社',
+             '978-7-302-123456', 'CIP2026001234', '2026', '3', '第 1 版', '300 千字', '59.00', '省级规划教材',
+             '纸质教材', '计算机科学与技术', '适用于本科院校']
+        ],
+        'monograph': [
+            ['深度学习理论与实践', '人工智能专著系列', '张三', '', '', '科学出版社', '978-7-03-123456', 'CIP2026005678',
+             '2026', '1', '第 1 版', '450 千字', '89.00', '学术专著', '计算机科学与技术', '研究生及以上']
+        ],
+        'teaching_project': [
+            ['新工科背景下的人工智能课程改革', 'JG2026001', '张三', '李四，王五', '教育部高教司', '2026-01-15',
+             '教学改革', '省部级', '理工类', '在研', '100000.00', '2026-01-01', '2027-12-31']
+        ],
+        'patent': [
+            ['一种基于机器学习的图像分类方法', '发明专利', 'XX 大学', '湖南省长沙市', '张三，李四', '已授权',
+             'ZL202610000001.0', 'CN123456789A', '2026-01-10', '2026-03-20']
+        ],
+        'software_copyright': [
+            ['智能教学管理系统 V1.0', '张三，李四', '2026-01-15', '2026-02-01', '原始取得', '全部权利', '2026SR001234',
+             '软著登字第 1234567 号', '2026-03-01']
+        ],
+        'teaching_achievement_award': [
+            ['地方高校一流本科专业建设创新与实践', '专业建设类', '省级', '张三，李四，王五', 'XX 大学教务处', '2026',
+             '一等奖', '2026001', 'XX 省教育厅', '2026-03-15']
+        ],
+        'teaching_competition_award': [
+            ['青年教师教学竞赛', '2026', '省部级', '一等奖', '张三', 'XX 大学教育学院', '全国高校教师教学竞赛',
+             '2026-03-20', '2026002']
+        ],
+        'student_guidance_award': [
+            ['大学生创新创业大赛', '2026', '互联网+', '国家级', '金奖', '李明', '智能医疗诊断系统', '张三',
+             'XX 大学计算机学院', '教育部', '2026003', '2026-03-25']
+        ]
+    }
+
+    return samples.get(achievement_type, None)
+
+
+def handle_excel_upload(achievement_type, model_name, type_name, current_user):
+    """处理 Excel 上传和解析"""
+    if 'excel_file' not in request.files:
+        flash('未选择文件！', 'danger')
+        return redirect(request.referrer)
+
+    file = request.files['excel_file']
+    if file.filename == '':
+        flash('未选择文件！', 'danger')
+        return redirect(request.referrer)
+
+    if not (file and allowed_file(file.filename)):
+        flash('文件格式错误，请上传 Excel 文件！', 'danger')
+        return redirect(request.referrer)
+
+    try:
+        # 读取 Excel 文件
+        df = pd.read_excel(file)
+
+        # 获取字段配置
+        fields_config = get_batch_import_fields(achievement_type)
+        field_labels = [field['label'] for field in fields_config]
+
+        # 校验列名
+        excel_columns = [col.strip() for col in df.columns.tolist()]
+        if excel_columns[0] == '序号':
+            excel_columns = excel_columns[1:]  # 跳过序号列
+
+        # 检查必填列是否存在
+        missing_cols = []
+        for field in fields_config:
+            if field.get('required', False) and field['label'] not in excel_columns:
+                missing_cols.append(field['label'])
+
+        if missing_cols:
+            flash(f'Excel 文件缺少必填列：{", ".join(missing_cols)}', 'danger')
+            return redirect(request.referrer)
+
+        # 解析数据
+        parsed_data = []
+        for idx, row in df.iterrows():
+            if idx == 0 or all(pd.isna(row[label]) for label in field_labels if label in excel_columns):
+                continue  # 跳过表头行和空行
+
+            item_data = {}
+            for field in fields_config:
+                label = field['label']
+                if label in excel_columns:
+                    value = row[label]
+                    if pd.isna(value):
+                        value = ''
+                    else:
+                        # 处理日期
+                        if isinstance(value, datetime) or isinstance(value, date):
+                            value = value.strftime('%Y-%m-%d')
+                        else:
+                            value = str(value).strip()
+                    item_data[field['name']] = value
+
+            item_data['_row_num'] = idx + 1  # 记录行号用于提示
+            parsed_data.append(item_data)
+
+        if not parsed_data:
+            flash('Excel 文件中没有有效数据！', 'danger')
+            return redirect(request.referrer)
+
+        # 检测重复成果
+        duplicate_check_results = check_duplicate_achievements(achievement_type, parsed_data, current_user)
+
+        # 生成确认页面
+        return render_confirm_page(achievement_type, type_name, parsed_data, duplicate_check_results, fields_config,
+                                   current_user)
+
+    except Exception as e:
+        flash(f'解析 Excel 文件失败：{str(e)}', 'danger')
+        return redirect(request.referrer)
+
+
+def check_duplicate_achievements(achievement_type, parsed_data, current_user):
+    """检测重复成果"""
+    model_map = {
+        'journal_paper': JournalPaper,
+        'conference_paper': ConferencePaper,
+        'textbook': Textbook,
+        'monograph': Monograph,
+        'teaching_project': TeachingProject,
+        'patent': Patent,
+        'software_copyright': SoftwareCopyright,
+        'teaching_achievement_award': TeachingAchievementAward,
+        'teaching_competition_award': TeachingCompetitionAward,
+        'student_guidance_award': StudentGuidanceAward
+    }
+
+    if achievement_type not in model_map:
+        return {'duplicates': [], 'new_items': parsed_data}
+
+    model = model_map[achievement_type]
+    duplicates = []
+    new_items = []
+
+    for item_data in parsed_data:
+        # 根据成果类型构建查询条件
+        query_filters = {'user_id': current_user.id}
+
+        # 核心字段查重（不同成果类型用不同字段）
+        if achievement_type in ['journal_paper', 'conference_paper', 'textbook', 'monograph']:
+            query_filters['title'] = item_data.get('title', '')
+        elif achievement_type == 'teaching_project':
+            query_filters['title'] = item_data.get('title', '')
+        elif achievement_type == 'patent':
+            query_filters['title'] = item_data.get('title', '')
+        elif achievement_type == 'software_copyright':
+            query_filters['title'] = item_data.get('title', '')
+        elif achievement_type in ['teaching_achievement_award', 'teaching_competition_award', 'student_guidance_award']:
+            query_filters['title'] = item_data.get('title', '')
+
+        # 查询数据库
+        existing = model.query.filter_by(**query_filters).first()
+
+        if existing:
+            item_data['_is_duplicate'] = True
+            item_data['_duplicate_id'] = existing.id
+            duplicates.append(item_data)
+        else:
+            item_data['_is_duplicate'] = False
+            new_items.append(item_data)
+
+    return {'duplicates': duplicates, 'new_items': new_items}
+
+
+def render_confirm_page(achievement_type, type_name, parsed_data, duplicate_check_results, fields_config, current_user):
+    """渲染确认页面"""
+    duplicates = duplicate_check_results['duplicates']
+    new_items = duplicate_check_results['new_items']
+
+    # 生成表格 HTML
+    table_html = '''
+    <h2>数据解析结果 - 请确认</h2>
+    <div class="alert alert-info">
+        <strong>说明：</strong><br>
+        1. 系统共解析出 <strong>{total}</strong> 条数据<br>
+        2. 其中 <strong style="color:#27ae60;">{new_count}</strong> 条可导入（数据库中不存在）<br>
+        3. 其中 <strong style="color:#e74c3c;">{duplicate_count}</strong> 条重复（数据库中已存在相同名称的成果）<br>
+        4. 请勾选需要导入的数据（默认全选可导入的数据）<br>
+        5. 重复的数据不能导入，仅供核对
+    </div>
+    '''.format(
+        total=len(parsed_data),
+        new_count=len(new_items),
+        duplicate_count=len(duplicates)
+    )
+
+    if duplicates:
+        table_html += '''
+        <div class="alert alert-warning">
+            <strong>以下成果重复，无法导入：</strong><br>
+            <ul>
+        '''
+        for dup in duplicates:
+            table_html += f'<li>第{dup["_row_num"]}行：{dup.get("title", "未知")}</li>'
+        table_html += '''
+            </ul>
+        </div>
+        '''
+
+    table_html += '''
+    <form method="POST" action="/achievement/batch_import/confirm">
+        <input type="hidden" name="achievement_type" value="{achievement_type}">
+        <input type="hidden" name="data_json" value="{data_json}">
+
+        <table style="width:100%; border-collapse:collapse; margin:20px 0;">
+            <thead>
+                <tr style="background:#f5f7fa;">
+                    <th style="padding:10px; border:1px solid #dee2e6;">选择</th>
+                    <th style="padding:10px; border:1px solid #dee2e6;">序号</th>
+        '''.format(
+        achievement_type=achievement_type,
+        data_json=json.dumps(parsed_data, ensure_ascii=False)
+    )
+
+    # 表头
+    for field in fields_config[:8]:  # 只显示前 8 个字段避免太宽
+        table_html += f'<th style="padding:10px; border:1px solid #dee2e6;">{field["label"]}</th>'
+    table_html += '<th style="padding:10px; border:1px solid #dee2e6;">状态</th></tr></thead><tbody>'
+
+    # 表体
+    for idx, item_data in enumerate(parsed_data, 1):
+        is_duplicate = item_data.get('_is_duplicate', False)
+        checkbox_disabled = 'disabled' if is_duplicate else ''
+        checkbox_checked = '' if is_duplicate else 'checked'
+
+        status_badge = '<span style="color:#27ae60;">✅ 可导入</span>' if not is_duplicate else '<span style="color:#e74c3c;">❌ 已存在</span>'
+
+        table_html += f'''
+        <tr>
+            <td style="padding:10px; border:1px solid #dee2e6; text-align:center;">
+                <input type="checkbox" name="selected_indices" value="{idx - 1}" {checkbox_checked} {checkbox_disabled}>
+            </td>
+            <td style="padding:10px; border:1px solid #dee2e6;">{item_data.get('_row_num', idx)}</td>
+        '''
+
+        # 显示前 8 个字段
+        for field in fields_config[:8]:
+            value = item_data.get(field['name'], '')
+            if len(str(value)) > 30:
+                value = str(value)[:28] + '...'
+            table_html += f'<td style="padding:10px; border:1px solid #dee2e6;">{value}</td>'
+
+        table_html += f'<td style="padding:10px; border:1px solid #dee2e6;">{status_badge}</td></tr>'
+
+    table_html += '</tbody></table>'
+
+    if new_items:
+        table_html += '''
+        <div style="margin:20px 0;">
+            <button type="submit" class="btn" style="background:#27ae60;">✅ 确认导入选中的数据</button>
+            <a href="/achievement/batch_import" class="btn" style="background-color:#95a5a6; margin-left:10px;">取消导入</a>
+        </div>
+        '''
+    else:
+        table_html += '''
+        <div class="alert alert-danger">
+            所有数据均已在数据库中存在，无需导入！
+        </div>
+        <a href="/achievement/batch_import" class="btn">返回</a>
+        '''
+
+    table_html += '</form>'
+
+    return render_base_layout('批量导入确认', table_html, current_user)
+
+
+@app.route('/achievement/batch_import/confirm', methods=['POST'])
+def handle_batch_import_confirm(current_user):
+    """处理批量导入确认"""
+    achievement_type = request.form.get('achievement_type')
+    data_json = request.form.get('data_json')
+    selected_indices_str = request.form.getlist('selected_indices')
+
+    if not achievement_type or not data_json:
+        flash('参数错误！', 'danger')
+        return redirect(url_for('batch_import'))
+
+    try:
+        parsed_data = json.loads(data_json)
+    except:
+        flash('数据解析失败！', 'danger')
+        return redirect(url_for('batch_import'))
+
+    # 获取选中的索引
+    selected_indices = [int(idx) for idx in selected_indices_str]
+
+    if not selected_indices:
+        flash('未选择任何数据！', 'danger')
+        return redirect(url_for('batch_import'))
+
+    # 获取要导入的数据
+    items_to_import = [parsed_data[i] for i in selected_indices if i < len(parsed_data)]
+
+    # 执行导入
+    success_count = 0
+    error_count = 0
+    errors = []
+
+    for item_data in items_to_import:
+        try:
+            result = import_single_achievement(achievement_type, item_data, current_user)
+            if result['success']:
+                success_count += 1
+            else:
+                error_count += 1
+                errors.append(f'第{item_data.get("_row_num", "?")}行：{result["error"]}')
+        except Exception as e:
+            error_count += 1
+            errors.append(f'第{item_data.get("_row_num", "?")}行：{str(e)}')
+
+    # 显示结果
+    if success_count > 0:
+        flash(f'成功导入 {success_count} 条数据！', 'success')
+
+    if error_count > 0:
+        flash(f'失败 {error_count} 条：{"；".join(errors[:3])}{"..." if error_count > 3 else ""}', 'danger')
+
+    return redirect(url_for('batch_import'))
+
+
+def import_single_achievement(achievement_type, item_data, current_user):
+    """导入单条成果数据"""
+    model_map = {
+        'journal_paper': JournalPaper,
+        'conference_paper': ConferencePaper,
+        'textbook': Textbook,
+        'monograph': Monograph,
+        'teaching_project': TeachingProject,
+        'patent': Patent,
+        'software_copyright': SoftwareCopyright,
+        'teaching_achievement_award': TeachingAchievementAward,
+        'teaching_competition_award': TeachingCompetitionAward,
+        'student_guidance_award': StudentGuidanceAward
+    }
+
+    if achievement_type not in model_map:
+        return {'success': False, 'error': '无效的成果类型'}
+
+    model = model_map[achievement_type]
+
+    try:
+        # 创建新对象
+        item = model()
+        item.user_id = current_user.id
+        item.create_time = datetime.now()
+        item.update_time = datetime.now()
+
+        # 映射字段值
+        field_mapping = get_field_mapping(achievement_type)
+        for excel_field, db_field in field_mapping.items():
+            if excel_field in item_data:
+                value = item_data[excel_field]
+
+                # 特殊处理
+                if value == '' or value is None:
+                    value = None
+
+                # 日期字段处理
+                if db_field in ['publish_date', 'conference_start_date', 'conference_end_date',
+                                'approval_date', 'start_date', 'end_date', 'apply_date',
+                                'grant_announcement_date', 'completion_date',
+                                'first_publication_date', 'register_date', 'award_date']:
+                    if value:
+                        try:
+                            value = datetime.strptime(str(value), '%Y-%m-%d').date()
+                        except:
+                            value = None
+                    else:
+                        value = None
+
+                # 数字字段处理
+                if db_field in ['publication_year', 'publication_month', 'publish_year',
+                                'year', 'award_year']:
+                    if value:
+                        try:
+                            value = int(value)
+                        except:
+                            value = None
+
+                setattr(item, db_field, value)
+
+        # 设置关联人员
+        if hasattr(item, 'related_personnel_ids'):
+            item.related_personnel_ids = str(current_user.id)
+
+        db.session.add(item)
+        db.session.commit()
+
+        # 自动关联贡献者
+        authors_field = None
+        if achievement_type == 'journal_paper':
+            authors_field = 'authors'
+        elif achievement_type == 'conference_paper':
+            authors_field = 'authors'
+        elif achievement_type in ['textbook', 'monograph']:
+            authors_field = 'chief_editor'
+
+        if authors_field and authors_field in item_data:
+            auto_link_contributors(item, achievement_type, item_data[authors_field], current_user.id)
+            db.session.commit()
+
+        return {'success': True}
+
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'error': str(e)}
+
+
+def get_field_mapping(achievement_type):
+    """获取 Excel 字段到数据库字段的映射"""
+    mappings = {
+        'journal_paper': {
+            'title': 'title',
+            'authors': 'authors',
+            'corresponding_authors': 'corresponding_authors',
+            'journal_name': 'journal_name',
+            'inclusion_status': 'inclusion_status',
+            'year': 'year',
+            'volume': 'volume',
+            'issue': 'issue',
+            'page_range': 'page_range',
+            'doi': 'doi',
+            'publish_year': 'publish_year',
+            'publish_date': 'publish_date',
+        },
+        'conference_paper': {
+            'title': 'title',
+            'authors': 'authors',
+            'corresponding_authors': 'corresponding_authors',
+            'conference_name': 'conference_name',
+            'conference_time': 'conference_time',
+            'conference_place': 'conference_place',
+            'page_range': 'page_range',
+            'doi': 'doi',
+            'publish_year': 'publish_year',
+        },
+        'textbook': {
+            'title': 'title',
+            'textbook_series': 'textbook_series',
+            'chief_editor': 'chief_editor',
+            'associate_editors': 'associate_editors',
+            'editorial_board': 'editorial_board',
+            'publisher': 'publisher',
+            'isbn': 'isbn',
+            'cip_number': 'cip_number',
+            'publication_year': 'publication_year',
+            'publication_month': 'publication_month',
+            'edition': 'edition',
+            'word_count': 'word_count',
+            'price': 'price',
+            'textbook_level': 'textbook_level',
+            'textbook_type': 'textbook_type',
+            'applicable_majors': 'applicable_majors',
+            'remarks': 'remarks',
+        },
+        'monograph': {
+            'title': 'title',
+            'textbook_series': 'textbook_series',
+            'chief_editor': 'chief_editor',
+            'associate_editors': 'associate_editors',
+            'editorial_board': 'editorial_board',
+            'publisher': 'publisher',
+            'isbn': 'isbn',
+            'cip_number': 'cip_number',
+            'publication_year': 'publication_year',
+            'publication_month': 'publication_month',
+            'edition': 'edition',
+            'word_count': 'word_count',
+            'price': 'price',
+            'monograph_type': 'monograph_type',
+            'applicable_majors': 'applicable_majors',
+            'remarks': 'remarks',
+        },
+        'teaching_project': {
+            'title': 'title',
+            'project_code': 'project_code',
+            'project_leader': 'project_leader',
+            'project_members': 'project_members',
+            'approval_department': 'approval_department',
+            'approval_date': 'approval_date',
+            'project_type': 'project_type',
+            'project_level': 'project_level',
+            'project_category': 'project_category',
+            'project_status': 'project_status',
+            'funding': 'funding',
+            'start_date': 'start_date',
+            'end_date': 'end_date',
+        },
+        'patent': {
+            'title': 'title',
+            'patent_type': 'patent_type',
+            'patentee': 'patentee',
+            'address': 'address',
+            'inventors': 'inventors',
+            'patent_status': 'patent_status',
+            'patent_number': 'patent_number',
+            'grant_announcement_number': 'grant_announcement_number',
+            'apply_date': 'apply_date',
+            'grant_announcement_date': 'grant_announcement_date',
+        },
+        'software_copyright': {
+            'title': 'title',
+            'copyright_owner': 'copyright_owner',
+            'completion_date': 'completion_date',
+            'first_publication_date': 'first_publication_date',
+            'right_acquisition_method': 'right_acquisition_method',
+            'right_scope': 'right_scope',
+            'copyright_number': 'copyright_number',
+            'certificate_number': 'certificate_number',
+            'register_date': 'register_date',
+        },
+        'teaching_achievement_award': {
+            'title': 'title',
+            'achievement_type': 'achievement_type',
+            'achievement_level': 'achievement_level',
+            'main_contributors': 'main_contributors',
+            'completing_units': 'completing_units',
+            'award_year': 'award_year',
+            'award_rank': 'award_rank',
+            'certificate_number': 'certificate_number',
+            'awarding_unit': 'awarding_unit',
+            'award_date': 'award_date',
+        },
+        'teaching_competition_award': {
+            'title': 'title',
+            'award_year': 'award_year',
+            'competition_level': 'competition_level',
+            'award_rank': 'award_rank',
+            'winners': 'winners',
+            'winner_unit': 'winner_unit',
+            'competition_name': 'competition_name',
+            'award_date': 'award_date',
+            'certificate_number': 'certificate_number',
+        },
+        'student_guidance_award': {
+            'title': 'title',
+            'award_year': 'award_year',
+            'competition_name': 'competition_name',
+            'competition_level': 'competition_level',
+            'award_rank': 'award_rank',
+            'student_name': 'student_name',
+            'project_name': 'project_name',
+            'teacher_name': 'teacher_name',
+            'student_unit': 'student_unit',
+            'organizer': 'organizer',
+            'certificate_number': 'certificate_number',
+            'award_date': 'award_date',
+        }
+    }
+
+    return mappings.get(achievement_type, {})
+
+
 # ---------------------- 5. 初始化数据库（强制重建+防重复创建） ----------------------
 def init_database():
     """初始化数据库（强制删除旧文件 + 创建新表 + 默认管理员）"""
@@ -8042,6 +9853,77 @@ if __name__ == '__main__':
             admin.set_password('admin123')
             db.session.add(admin)
             db.session.commit()
+
+        # 核心修复：初始化收录类型字典数据
+        if InclusionType.query.count() == 0:
+            inclusion_data = [
+                {'type_name': 'SCI 期刊', 'type_code': 'SCI', 'description': '科学引文索引期刊', 'sort_order': 1},
+                {'type_name': 'SSCI 期刊', 'type_code': 'SSCI', 'description': '社会科学引文索引期刊', 'sort_order': 2},
+                {'type_name': 'EI 期刊', 'type_code': 'EI', 'description': '工程索引期刊', 'sort_order': 3},
+                {'type_name': 'CSSCI 期刊', 'type_code': 'CSSCI', 'description': '中文社会科学引文索引期刊',
+                 'sort_order': 4},
+                {'type_name': 'CSCD 核心库期刊', 'type_code': 'CSCD_CORE',
+                 'description': '中国科学引文数据库核心库期刊', 'sort_order': 5},
+                {'type_name': 'CSCD 扩展库期刊', 'type_code': 'CSCD_EXT', 'description': '中国科学引文数据库扩展库期刊',
+                 'sort_order': 6},
+                {'type_name': '北大中文核心期刊', 'type_code': 'PKU_CORE', 'description': '北京大学中文核心期刊',
+                 'sort_order': 7},
+                {'type_name': '中国科技核心期刊', 'type_code': 'CSTPCD', 'description': '中国科技论文统计源期刊',
+                 'sort_order': 8},
+                {'type_name': '普通期刊', 'type_code': 'GENERAL', 'description': '普通期刊', 'sort_order': 9},
+                {'type_name': '其它', 'type_code': 'OTHER', 'description': '其他收录类型', 'sort_order': 10},
+            ]
+
+            for data in inclusion_data:
+                existing = InclusionType.query.filter_by(type_code=data['type_code']).first()
+                if not existing:
+                    inclusion_type = InclusionType(**data)
+                    db.session.add(inclusion_type)
+
+            db.session.commit()
+            print("[OK] 初始化收录类型数据完成")
+
+            # 初始化教材级别字典数据
+        if TextbookLevel.query.count() == 0:
+            textbook_level_data = [
+                {'level_name': '国家级规划教材', 'level_code': 'NATIONAL', 'description': '国家级规划教材',
+                 'sort_order': 1},
+                {'level_name': '全国行业规划教材', 'level_code': 'INDUSTRY', 'description': '全国行业规划教材',
+                 'sort_order': 2},
+                {'level_name': '协编教材', 'level_code': 'COEDIT', 'description': '协编教材', 'sort_order': 3},
+                {'level_name': '自编教材', 'level_code': 'SELF', 'description': '自编教材', 'sort_order': 4},
+                {'level_name': '其它', 'level_code': 'OTHER', 'description': '其它', 'sort_order': 5},
+            ]
+
+            for data in textbook_level_data:
+                existing = TextbookLevel.query.filter_by(level_code=data['level_code']).first()
+                if not existing:
+                    textbook_level = TextbookLevel(**data)
+                    db.session.add(textbook_level)
+
+            db.session.commit()
+            print("初始化教材级别数据完成")
+
+        # 初始化教材级别字典数据
+        if TextbookLevel.query.count() == 0:
+            textbook_level_data = [
+                {'level_name': '国家级规划教材', 'level_code': 'NATIONAL', 'description': '国家级规划教材',
+                 'sort_order': 1},
+                {'level_name': '全国行业规划教材', 'level_code': 'INDUSTRY', 'description': '全国行业规划教材',
+                 'sort_order': 2},
+                {'level_name': '协编教材', 'level_code': 'COEDIT', 'description': '协编教材', 'sort_order': 3},
+                {'level_name': '自编教材', 'level_code': 'SELF', 'description': '自编教材', 'sort_order': 4},
+                {'level_name': '其它', 'level_code': 'OTHER', 'description': '其它', 'sort_order': 5},
+            ]
+
+            for data in textbook_level_data:
+                existing = TextbookLevel.query.filter_by(level_code=data['level_code']).first()
+                if not existing:
+                    textbook_level = TextbookLevel(**data)
+                    db.session.add(textbook_level)
+
+            db.session.commit()
+            print("✅ 初始化教材级别数据完成")
 
         # 初始化教学成果奖类型
         if TeachingAchievementType.query.count() == 0:
